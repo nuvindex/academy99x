@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الحضور والغياب - أكاديمية العلوم الشرعية 2026</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="main-style.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+body {
+  background: linear-gradient(135deg, #0b1120 0%, #0f1a2e 50%, #0b1120 100%);
+  min-height: 100vh;
+}
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 20px 80px;
+}
+.page-header {
+  margin-bottom: 28px;
+  animation: fadeIn 0.6s ease;
+}
+.page-header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+.page-header p {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+.students-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  animation: fadeInUp 0.5s ease;
+}
+.att-card {
+  background: rgba(22, 30, 49, 0.85);
+  border: 2px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 18px 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  user-select: none;
+  min-height: 140px;
+  justify-content: center;
+}
+.att-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+.att-card .card-seq {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-family: monospace;
+}
+.att-card .card-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+}
+.att-card .card-phone {
+  font-size: 0.7rem;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+.att-card .card-status {
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 4px 18px;
+  border-radius: 20px;
+  margin-top: 4px;
+}
+.att-card.status-present {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.08);
+}
+.att-card.status-present .card-status {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+.att-card.status-late {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.08);
+}
+.att-card.status-late .card-status {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+.att-card.status-absent {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.08);
+}
+.att-card.status-absent .card-status {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+.stats-bar {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  animation: fadeIn 0.4s ease;
+}
+.stats-bar .stat-item {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stats-bar .stat-item strong {
+  font-size: 1.2rem;
+}
+.stat-present strong { color: #10b981; }
+.stat-late strong { color: #f59e0b; }
+.stat-absent strong { color: #f87171; }
+.stat-total strong { color: #60a5fa; }
+.search-wrapper {
+  position: relative;
+  max-width: 380px;
+  width: 100%;
+}
+.search-wrapper i {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  font-size: 0.85rem;
+}
+.search-wrapper input {
+  padding-right: 38px;
+}
+.toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.report-preview {
+  background: rgba(22, 30, 49, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 24px;
+  overflow-x: auto;
+}
+.report-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.report-preview th {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.report-preview td {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  text-align: center;
+  color: #cbd5e1;
+}
+.report-preview td.r-present { background: rgba(16, 185, 129, 0.12); color: #10b981; font-weight: 700; }
+.report-preview td.r-late { background: rgba(245, 158, 11, 0.12); color: #f59e0b; font-weight: 700; }
+.report-preview td.r-absent { background: rgba(239, 68, 68, 0.12); color: #f87171; font-weight: 700; }
+.report-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.report-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  text-align: center;
+  margin-bottom: 16px;
+}
+.report-stats-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.report-stats-row span {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+.report-stats-row .rp-green { color: #10b981; }
+.report-stats-row .rp-amber { color: #f59e0b; }
+.report-stats-row .rp-red { color: #f87171; }
+.report-stats-row .rp-blue { color: #60a5fa; }
+@media (max-width: 992px) {
+  .students-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+  .main-content { padding: 20px 12px 100px; }
+  .students-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .att-card { min-height: 120px; padding: 14px 10px; }
+  .filter-grid { grid-template-columns: 1fr; padding: 12px; }
+  .toolbar-row { flex-direction: column; align-items: stretch; }
+  .search-wrapper { max-width: 100%; }
+}
+@media (max-width: 480px) {
+  .students-grid { grid-template-columns: 1fr; }
+  .stats-bar { justify-content: center; }
+  .stats-bar .stat-item { padding: 8px 14px; font-size: 0.78rem; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar no-print">
+  <div class="nav-container">
+    <div class="nav-logo">
+      <img src="img/logo.jpg" alt="شعار الأكاديمية" class="logo-img">
+      <span class="logo-text">الأكاديمية 2026</span>
+    </div>
+     <button class="nav-toggle" onclick="toggleNav()"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+    <div class="nav-links">
+      <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a>
+      <a href="register.html"><i class="fas fa-user-plus"></i> تسجيل</a>
+      <a href="grades.html"><i class="fas fa-chart-line"></i> رصد الدرجات</a>
+      <a href="attendance.html" style="color:#10b981;background:rgba(16,185,129,0.1)"><i class="fas fa-calendar-check"></i> الحضور</a>
+      <a href="students.html"><i class="fas fa-users"></i> الطلاب</a>
+      <a href="result.html"><i class="fas fa-file-alt"></i> النتيجة</a>
+      <a href="#" onclick="logout()" style="color:#ef4444"><i class="fas fa-sign-out-alt"></i> خروج</a>
+    </div>
+  </div>
+</nav>
+
+<div class="nav-overlay" onclick="toggleNav()"></div>
+
+<div class="scroll-buttons no-print">
+  <button class="scroll-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="أعلى الصفحة"><i class="fas fa-arrow-up"></i></button>
+  <button class="scroll-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="أسفل الصفحة"><i class="fas fa-arrow-down"></i></button>
+</div>
+
+<div class="main-content">
+
+  <div class="page-header">
+    <h1><i class="fas fa-calendar-check" style="color:#10b981;margin-left:10px;"></i>الحضور والغياب</h1>
+    <p>تسجيل ومتابعة حضور الطلاب - أكاديمية العلوم الشرعية 2026</p>
+  </div>
+
+  <div class="card no-print" style="margin-bottom:20px;">
+    <div class="filter-grid">
+      <div>
+        <label class="form-label">المرحلة / الدورة</label>
+        <select id="courseSelect" class="form-control" onchange="onCourseChange()">
+          <option value="">-- اختر الدورة --</option>
+          <option value="prep">دورة الإعدادي</option>
+          <option value="adults">دورة الكبار</option>
+          <option value="kids">دورة الأطفال</option>
+          <option value="institute">معهد العلوم الشرعية</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">الفرقة / المجموعة</label>
+        <select id="groupSelect" class="form-control">
+          <option value="">-- اختر الدورة أولاً --</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">الأسبوع الدراسي</label>
+        <select id="weekSelect" class="form-control">
+          <option value="week1">الأسبوع الأول</option>
+          <option value="week2">الأسبوع الثاني</option>
+          <option value="week3">الأسبوع الثالث</option>
+          <option value="week4">الأسبوع الرابع</option>
+          <option value="week5">الأسبوع الخامس</option>
+          <option value="week6">الأسبوع السادس</option>
+          <option value="week7">الأسبوع السابع</option>
+          <option value="week8">الأسبوع الثامن</option>
+          <option value="week9">الأسبوع التاسع</option>
+          <option value="week10">الأسبوع العاشر</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">الفترة الدراسية</label>
+        <select id="periodSelect" class="form-control">
+          <option value="">-- اختر الدورة أولاً --</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="loadAttendanceGrid()" style="width:100%;">
+      <i class="fas fa-sync-alt"></i> تحميل الطلاب
+    </button>
+  </div>
+
+  <div id="statsBar" class="stats-bar no-print" style="display:none;">
+    <div class="stat-item stat-total">المقيدين <strong id="statTotal">0</strong></div>
+    <div class="stat-item stat-present"><i class="fas fa-circle" style="color:#10b981;font-size:0.6rem;"></i> حاضر <strong id="statPresent">0</strong></div>
+    <div class="stat-item stat-late"><i class="fas fa-circle" style="color:#f59e0b;font-size:0.6rem;"></i> متأخر <strong id="statLate">0</strong></div>
+    <div class="stat-item stat-absent"><i class="fas fa-circle" style="color:#f87171;font-size:0.6rem;"></i> غائب <strong id="statAbsent">0</strong></div>
+  </div>
+
+  <div class="toolbar-row no-print" id="toolbarRow" style="display:none;">
+    <div class="search-wrapper">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" class="form-control" placeholder="بحث بالاسم أو الرقم التسلسلي..." oninput="filterCards()">
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="resetAllToPresent()"><i class="fas fa-undo"></i> إعادة تعيين الكل</button>
+  </div>
+
+  <div id="studentsGridContainer" class="students-grid">
+    <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#64748b;font-size:0.95rem;">
+      <i class="fas fa-arrow-up" style="display:block;font-size:2rem;margin-bottom:12px;color:#334155;"></i>
+      اختر الدورة والفرقة ثم اضغط "تحميل الطلاب"
+    </div>
+  </div>
+
+  <div id="actionBar" class="button-group no-print" style="display:none;margin-top:20px;">
+    <button class="btn btn-primary" onclick="saveAttendance()"><i class="fas fa-cloud-upload-alt"></i> حفظ إلى Firebase</button>
+    <button class="btn btn-danger" onclick="deleteSheet()"><i class="fas fa-trash-alt"></i> حذف الكشف</button>
+    <button class="btn btn-gold" onclick="generateReport()"><i class="fas fa-file-alt"></i> إنشاء التقرير</button>
+  </div>
+
+  <div id="reportArea" class="report-preview" style="display:none;">
+    <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="fa-stack" style="font-size:0.8rem;">
+          <i class="fas fa-circle fa-stack-2x" style="color:#10b981;"></i>
+          <i class="fas fa-file-alt fa-stack-1x" style="color:#04060a;"></i>
+        </span>
+        <span style="font-weight:700;color:#ffffff;font-size:0.9rem;">معاينة التقرير</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="downloadExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn btn-secondary btn-sm" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+        <button class="btn btn-danger btn-sm" onclick="closeReport()"><i class="fas fa-times"></i> إغلاق</button>
+      </div>
+    </div>
+    <div id="reportContent"></div>
+  </div>
+
+</div>
+
+<div id="messageModal" class="modal-overlay">
+  <div class="modal-content">
+    <p id="messageText"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const s = JSON.parse(localStorage.getItem('adminSession'));
+  if (!s || s.role !== 'admin' || (Date.now() - s.timestamp > 86400000)) {
+    localStorage.removeItem('adminSession');
+    window.location.href = 'login.html?mode=admin';
+  }
+})();
+function logout() { localStorage.removeItem('adminSession'); window.location.href = 'index.html'; }
+const firebaseConfig = {
+  apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+  authDomain: "adawra-63958.firebaseapp.com",
+  databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+  projectId: "adawra-63958"
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.database();
+
+
+const periodMap = {
+  prep: [
+    { value: "period1", label: "الفترة الأولى" },
+    { value: "period2", label: "الفترة الثانية" },
+    { value: "period3", label: "الفترة الثالثة" }
+  ],
+  adults: [
+    { value: "thursday", label: "يوم الخميس" },
+    { value: "friday", label: "يوم الجمعة" }
+  ],
+  kids: [
+    { value: "morning", label: "صباحي" },
+    { value: "evening", label: "مسائي" }
+  ],
+  institute: [
+    { value: "level1", label: "مستوى أول" },
+    { value: "level2", label: "مستوى ثاني" }
+  ]
+};
+
+let studentsList = [];
+let attendanceMap = {};
+let currentGeneratedHTML = "";
+
+function showMessage(msg) {
+  const modal = document.getElementById('messageModal');
+  document.getElementById('messageText').textContent = msg;
+  modal.classList.add('show');
+  setTimeout(() => modal.classList.remove('show'), 2500);
+}
+
+function onCourseChange() {
+  closeReport();
+  clearAll();
+  loadGroups();
+  updatePeriods();
+}
+
+function clearAll() {
+  document.getElementById("studentsGridContainer").innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#64748b;">اختر الدورة والفرقة ثم اضغط "تحميل الطلاب"</div>';
+  document.getElementById("statsBar").style.display = "none";
+  document.getElementById("toolbarRow").style.display = "none";
+  document.getElementById("actionBar").style.display = "none";
+  studentsList = [];
+  attendanceMap = {};
+}
+
+function loadGroups() {
+  const courseId = document.getElementById("courseSelect").value;
+  const select = document.getElementById("groupSelect");
+  if (!courseId) {
+    select.innerHTML = '<option value="">-- اختر الدورة أولاً --</option>';
+    return;
+  }
+  select.innerHTML = '<option value="">⏳ جاري التحميل...</option>';
+  db.ref("2026/groups/" + courseId).once("value", snap => {
+    select.innerHTML = '<option value="">-- اختر الفرقة --</option>';
+    if (!snap.exists()) {
+      select.innerHTML = '<option value="">⚠️ لا توجد فرق مسجلة</option>';
+      return;
+    }
+    snap.forEach(child => {
+      const opt = document.createElement("option");
+      opt.value = child.key;
+      opt.textContent = child.val().name || child.key;
+      select.appendChild(opt);
+    });
+  }).catch(() => {
+    select.innerHTML = '<option value="">❌ فشل التحميل</option>';
+  });
+}
+
+function updatePeriods() {
+  const courseId = document.getElementById("courseSelect").value;
+  const periodSelect = document.getElementById("periodSelect");
+  if (!courseId || !periodMap[courseId]) {
+    periodSelect.innerHTML = '<option value="">-- اختر الدورة أولاً --</option>';
+    return;
+  }
+  periodSelect.innerHTML = "";
+  periodMap[courseId].forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.value;
+    opt.textContent = p.label;
+    periodSelect.appendChild(opt);
+  });
+}
+
+async function loadAttendanceGrid() {
+  const courseId = document.getElementById("courseSelect").value;
+  const groupId = document.getElementById("groupSelect").value;
+  const weekId = document.getElementById("weekSelect").value;
+  const periodId = document.getElementById("periodSelect").value;
+
+  if (!courseId || !groupId || !weekId || !periodId) {
+    showMessage("⚠️ يرجى اختيار جميع الفلاتر أولاً");
+    return;
+  }
+
+  const container = document.getElementById("studentsGridContainer");
+  container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#64748b;"><i class="fas fa-spinner fa-pulse" style="font-size:1.5rem;display:block;margin-bottom:10px;"></i> جاري تحميل بيانات الطلاب...</div>';
+  closeReport();
+
+  try {
+    const studentsSnap = await db.ref("2026/students/" + courseId + "/" + groupId).once("value");
+    if (!studentsSnap.exists()) {
+      container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#f87171;">📋 لا يوجد طلاب مسجلين في هذه الفرقة</div>';
+      return;
+    }
+
+    const attSnap = await db.ref("2026/attendance/" + courseId + "/" + groupId + "/" + weekId + "/" + periodId).once("value");
+    const savedAtt = attSnap.exists() ? attSnap.val() : {};
+
+    studentsList = [];
+    attendanceMap = {};
+
+    studentsSnap.forEach(child => {
+      studentsList.push({ id: child.key, ...child.val() });
+    });
+    studentsList.sort((a, b) => (a.seq || 0) - (b.seq || 0));
+
+    studentsList.forEach(s => {
+      attendanceMap[s.id] = savedAtt[s.id] ? savedAtt[s.id].status : "present";
+    });
+
+    renderCards(studentsList);
+    updateStats();
+    document.getElementById("statsBar").style.display = "flex";
+    document.getElementById("toolbarRow").style.display = "flex";
+    document.getElementById("actionBar").style.display = "flex";
+
+    container.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (e) {
+    container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#f87171;">❌ فشل تحميل البيانات: ' + e.message + '</div>';
+  }
+}
+
+function renderCards(list) {
+  const container = document.getElementById("studentsGridContainer");
+  if (list.length === 0) {
+    container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#64748b;">لا توجد نتائج مطابقة للبحث</div>';
+    return;
+  }
+  container.innerHTML = "";
+  list.forEach(s => {
+    const status = attendanceMap[s.id] || "present";
+    const card = document.createElement("div");
+    card.className = "att-card status-" + status;
+    card.id = "card_" + s.id;
+    card.onclick = () => cycleStatus(s.id);
+
+    let phoneLabel = s.phone ? '📞 ' + s.phone : 'لا يوجد هاتف';
+    let phoneClass = s.phone ? '' : 'opacity-50';
+
+    let statusText = { present: "حاضر", late: "متأخر", absent: "غائب" }[status] || "حاضر";
+
+    card.innerHTML =
+      '<div class="card-seq">مسلسل: ' + (s.seq || '-') + '</div>' +
+      '<div class="card-name">' + (s.name || '') + '</div>' +
+      '<div class="card-phone ' + phoneClass + '">' + phoneLabel + '</div>' +
+      '<div class="card-status">' + statusText + '</div>';
+
+    container.appendChild(card);
+  });
+}
+
+function cycleStatus(studentId) {
+  const current = attendanceMap[studentId] || "present";
+  const next = current === "present" ? "late" : current === "late" ? "absent" : "present";
+  attendanceMap[studentId] = next;
+
+  const card = document.getElementById("card_" + studentId);
+  if (card) {
+    card.className = "att-card status-" + next;
+    const statusEl = card.querySelector(".card-status");
+    if (statusEl) statusEl.textContent = { present: "حاضر", late: "متأخر", absent: "غائب" }[next];
+  }
+  updateStats();
+}
+
+function resetAllToPresent() {
+  if (!confirm("هل تريد إعادة تعيين حالة جميع الطلاب إلى (حاضر)؟")) return;
+  studentsList.forEach(s => { attendanceMap[s.id] = "present"; });
+  renderCards(studentsList);
+  updateStats();
+}
+
+function updateStats() {
+  let total = studentsList.length;
+  let present = 0, late = 0, absent = 0;
+  Object.values(attendanceMap).forEach(st => {
+    if (st === "present") present++;
+    else if (st === "late") late++;
+    else if (st === "absent") absent++;
+  });
+  document.getElementById("statTotal").textContent = total;
+  document.getElementById("statPresent").textContent = present;
+  document.getElementById("statLate").textContent = late;
+  document.getElementById("statAbsent").textContent = absent;
+}
+
+function filterCards() {
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+  if (!q) { renderCards(studentsList); return; }
+  const filtered = studentsList.filter(s =>
+    (s.name || "").toLowerCase().includes(q) ||
+    (s.seq || "").toString() === q
+  );
+  renderCards(filtered);
+}
+
+async function saveAttendance() {
+  const courseId = document.getElementById("courseSelect").value;
+  const groupId = document.getElementById("groupSelect").value;
+  const weekId = document.getElementById("weekSelect").value;
+  const periodId = document.getElementById("periodSelect").value;
+  if (!courseId || !groupId) { showMessage("⚠️ اختر الدورة والفرقة أولاً"); return; }
+
+  const data = {};
+  const now = new Date().toLocaleString("ar-EG");
+  Object.keys(attendanceMap).forEach(sid => {
+    data[sid] = { status: attendanceMap[sid], lastUpdated: now };
+  });
+
+  try {
+    await db.ref("2026/attendance/" + courseId + "/" + groupId + "/" + weekId + "/" + periodId).set(data);
+    showMessage("✅ تم حفظ كشف الحضور بنجاح في Firebase");
+  } catch (e) {
+    showMessage("❌ فشل الحفظ: " + e.message);
+  }
+}
+
+async function deleteSheet() {
+  const courseId = document.getElementById("courseSelect").value;
+  const groupId = document.getElementById("groupSelect").value;
+  const weekId = document.getElementById("weekSelect").value;
+  const periodId = document.getElementById("periodSelect").value;
+  if (!courseId || !groupId) { showMessage("⚠️ اختر الدورة والفرقة أولاً"); return; }
+  if (!confirm("⚠️ هل أنت متأكد من حذف كشف الحضور هذا بالكامل؟")) return;
+
+  try {
+    await db.ref("2026/attendance/" + courseId + "/" + groupId + "/" + weekId + "/" + periodId).remove();
+    showMessage("🗑️ تم حذف الكشف بنجاح");
+    loadAttendanceGrid();
+  } catch (e) {
+    showMessage("❌ فشل الحذف: " + e.message);
+  }
+}
+
+function generateReport() {
+  if (studentsList.length === 0) { showMessage("⚠️ لا توجد بيانات لإنشاء التقرير"); return; }
+
+  const courseId = document.getElementById("courseSelect").value;
+  const groupSelect = document.getElementById("groupSelect");
+  const weekSelect = document.getElementById("weekSelect");
+  const periodSelect = document.getElementById("periodSelect");
+  const groupName = groupSelect.options[groupSelect.selectedIndex]?.text || "";
+  const weekName = weekSelect.options[weekSelect.selectedIndex]?.text || "";
+  const periodName = periodSelect.options[periodSelect.selectedIndex]?.text || "";
+
+  let total = studentsList.length;
+  let present = 0, late = 0, absent = 0;
+  Object.values(attendanceMap).forEach(st => {
+    if (st === "present") present++;
+    else if (st === "late") late++;
+    else if (st === "absent") absent++;
+  });
+  const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+
+  let rows = "";
+  studentsList.forEach(s => {
+    const status = attendanceMap[s.id] || "present";
+    let stText = "حاضر", stClass = "r-present";
+    if (status === "late") { stText = "متأخر"; stClass = "r-late"; }
+    else if (status === "absent") { stText = "غائب"; stClass = "r-absent"; }
+    rows += "<tr><td>" + (s.seq || '-') + "</td><td style='text-align:right;padding-right:15px;'>" + (s.name || '') + "</td><td>" + (s.phone || 'غير مسجل') + "</td><td class='" + stClass + "'>" + stText + "</td></tr>";
+  });
+
+  const html =
+    '<div class="report-title">تقرير الحضور والغياب</div>' +
+    '<div class="report-subtitle">' + groupName + ' | ' + weekName + ' | ' + periodName + '</div>' +
+    '<div class="report-stats-row">' +
+    '<span class="rp-blue">إجمالي: ' + total + '</span>' +
+    '<span class="rp-green">🟢 حاضر: ' + present + '</span>' +
+    '<span class="rp-amber">🟡 متأخر: ' + late + '</span>' +
+    '<span class="rp-red">🔴 غائب: ' + absent + '</span>' +
+    '<span class="rp-green">نسبة الحضور: ' + rate + '%</span>' +
+    '</div>' +
+    '<table><thead><tr><th>المسلسل</th><th>اسم الطالب</th><th>رقم الجوال</th><th>الحالة</th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+  currentGeneratedHTML = html;
+  document.getElementById("reportContent").innerHTML = html;
+  document.getElementById("reportArea").style.display = "block";
+  document.getElementById("reportArea").scrollIntoView({ behavior: "smooth" });
+}
+
+function closeReport() {
+  document.getElementById("reportArea").style.display = "none";
+  currentGeneratedHTML = "";
+}
+
+function downloadExcel() {
+  if (!currentGeneratedHTML) { showMessage("⚠️ أنشئ التقرير أولاً"); return; }
+
+  const groupSelect = document.getElementById("groupSelect");
+  const groupName = groupSelect.options[groupSelect.selectedIndex]?.text || "report";
+
+  const excelContent =
+    '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" lang="ar" dir="rtl">' +
+    '<head><meta charset="UTF-8"><style>' +
+    'body{direction:rtl;font-family:Arial,sans-serif;}' +
+    '.report-title{font-size:16pt;font-weight:bold;text-align:center;color:#064e3b;}' +
+    '.report-subtitle{font-size:11pt;text-align:center;color:#475569;}' +
+    'table{width:100%;border-collapse:collapse;}' +
+    'th{background:#0f172a;color:white;border:1px solid #cbd5e1;padding:8px;text-align:center;}' +
+    'td{border:1px solid #cbd5e1;padding:6px;text-align:center;}' +
+    '.r-present{background:#dcfce7;color:#15803d;font-weight:bold;}' +
+    '.r-late{background:#fef3c7;color:#b45309;font-weight:bold;}' +
+    '.r-absent{background:#fee2e2;color:#b91c1c;font-weight:bold;}' +
+    '</style></head><body>' + currentGeneratedHTML + '</body></html>';
+
+  const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute("download", "تقرير_حضور_" + groupName + "_2026.xls");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+function toggleNav() {
+  var nl = document.querySelector('.nav-links');
+  var no = document.querySelector('.nav-overlay');
+  var nt = document.querySelector('.nav-toggle');
+  if (nl) nl.classList.toggle('open');
+  if (no) no.classList.toggle('show');
+  if (nt) nt.classList.toggle('open');
+}
+</script>
+</body>
+</html>

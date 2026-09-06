@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل الدخول - أكاديمية العلوم الشرعية</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="main-style.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+.login-logo-svg { width: 70px; height: 70px; margin-bottom: 16px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.form-group { margin-bottom: 18px; text-align: right; }
+.form-group .form-label { display: block; font-size: 0.82rem; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
+.login-btn { width: 100%; padding: 14px; font-size: 1rem; border-radius: 12px; margin-top: 8px; }
+.back-link { display: inline-block; margin-top: 16px; color: #64748b; font-size: 0.85rem; font-weight: 600; transition: color 0.2s; text-decoration: none; }
+.back-link:hover { color: #10b981; }
+.footer-text { margin-top: 20px; font-size: 0.75rem; color: #475569; }
+.loading-spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #04060a; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
+.hint-text { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <img src="img/logo.jpg" alt="شعار الأكاديمية" class="login-logo-svg">
+    <h1>أكاديمية العلوم الشرعية</h1>
+    <p>بكفور العرب - منظومة المُزْهِر في اللغة العربية 2026</p>
+
+    <div class="login-tabs">
+      <button class="login-tab active" data-tab="admin" onclick="switchTab('admin')">دخول الإدارة</button>
+      <button class="login-tab" data-tab="student" onclick="switchTab('student')">دخول الطلاب</button>
+    </div>
+
+    <div id="tab-admin" class="tab-content active">
+      <div class="form-group">
+        <label class="form-label">كود الدخول</label>
+        <input type="password" id="adminCode" class="form-control" placeholder="أدخل كود الإدارة" style="direction:ltr;text-align:center;font-family:'Courier New',monospace;font-size:1.1rem;letter-spacing:4px;">
+      </div>
+      <button class="btn btn-primary login-btn" onclick="adminLogin()" id="adminLoginBtn">تسجيل الدخول</button>
+      <br>
+      <a href="index.html" class="back-link">← العودة إلى الرئيسية</a>
+    </div>
+
+    <div id="tab-student" class="tab-content">
+      <div class="form-group">
+        <label class="form-label">نوع الدورة</label>
+        <select id="studentCourse" class="form-control" onchange="loadStudentGroups()">
+          <option value="">-- اختر الدورة --</option>
+          <option value="prep">دورة الإعدادي</option>
+          <option value="adults">دورة الكبار</option>
+          <option value="kids">دورة الأطفال</option>
+          <option value="institute">معهد العلوم الشرعية</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الفرقة / المجموعة</label>
+        <select id="studentGroup" class="form-control">
+          <option value="">-- اختر الدورة أولاً --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">كود المتابعة السري</label>
+        <input type="password" id="studentPassword" class="form-control" placeholder="أدخل كود المتابعة" style="direction:ltr;text-align:center;font-family:'Courier New',monospace;font-size:1.1rem;letter-spacing:4px;">
+      </div>
+      <button class="btn btn-primary login-btn" onclick="studentLogin()" id="studentLoginBtn">تسجيل الدخول</button>
+      <br>
+      <a href="index.html" class="back-link">← العودة إلى الرئيسية</a>
+    </div>
+
+    <p class="footer-text">جميع الحقوق محفوظة &copy; 2026</p>
+  </div>
+</div>
+
+<div id="messageToast" class="message-toast"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+  authDomain: "adawra-63958.firebaseapp.com",
+  databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+  projectId: "adawra-63958",
+};
+
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.database();
+
+var params = new URLSearchParams(window.location.search);
+var mode = params.get('mode');
+if (mode === 'student') { switchTab('student'); }
+
+function showToast(msg, isError) {
+  const t = document.getElementById('messageToast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)';
+  t.className = 'message-toast';
+  setTimeout(function() { t.classList.add('show'); }, 10);
+  setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.login-tab').forEach(function(btn) {
+    btn.classList.remove('active');
+  });
+  document.querySelectorAll('.tab-content').forEach(function(tc) {
+    tc.classList.remove('active');
+  });
+  document.querySelector('.login-tab[data-tab="' + tab + '"]').classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function loadStudentGroups() {
+  var courseId = document.getElementById('studentCourse').value;
+  var select = document.getElementById('studentGroup');
+  if (!courseId) {
+    select.innerHTML = '<option value="">-- اختر الدورة أولاً --</option>';
+    return;
+  }
+  select.innerHTML = '<option value="">جاري التحميل...</option>';
+  db.ref('2026/groups/' + courseId).once('value').then(function(snap) {
+    select.innerHTML = '<option value="">-- اختر الفرقة --</option>';
+    if (!snap.exists()) {
+      select.innerHTML = '<option value="">⚠️ لا توجد فرق متاحة</option>';
+      return;
+    }
+    snap.forEach(function(child) {
+      var opt = document.createElement('option');
+      opt.value = child.key;
+      var data = child.val();
+      var isLocked = data && data.locked === true;
+      if (isLocked) {
+        opt.textContent = '🚫 ' + (data.name || child.key) + ' (مغلق)';
+        opt.disabled = true;
+      } else {
+        opt.textContent = data.name || child.key;
+      }
+      select.appendChild(opt);
+    });
+  }).catch(function() {
+    select.innerHTML = '<option value="">⚠️ فشل تحميل المجموعات</option>';
+  });
+}
+
+function adminLogin() {
+  var code = document.getElementById('adminCode').value.trim();
+  if (!code) {
+    showToast('يرجى إدخال كود الدخول', true);
+    return;
+  }
+  var btn = document.getElementById('adminLoginBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span> جاري التحقق...';
+
+  db.ref('2026/admin/code').once('value').then(function(snap) {
+    if (!snap.exists()) {
+      return db.ref('2026/admin/code').set('992633').then(function() {
+        localStorage.setItem('adminSession', JSON.stringify({
+          role: 'admin',
+          loggedIn: true,
+          timestamp: Date.now()
+        }));
+        window.location.href = 'dashboard.html';
+      }).catch(function() {
+        showToast('❌ فشل إنشاء إعدادات النظام في قاعدة البيانات', true);
+        resetAdminBtn();
+      });
+    }
+    var validCode = snap.val();
+    if (code === validCode) {
+      localStorage.setItem('adminSession', JSON.stringify({
+        role: 'admin',
+        loggedIn: true,
+        timestamp: Date.now()
+      }));
+      window.location.href = 'dashboard.html';
+    } else {
+      showToast('❌ كود الدخول غير صحيح', true);
+      resetAdminBtn();
+    }
+  }).catch(function() {
+    showToast('❌ فشل الاتصال بقاعدة البيانات', true);
+    resetAdminBtn();
+  });
+}
+
+function resetAdminBtn() {
+  var btn = document.getElementById('adminLoginBtn');
+  btn.disabled = false;
+  btn.innerHTML = 'تسجيل الدخول';
+}
+
+function studentLogin() {
+  var courseId = document.getElementById('studentCourse').value;
+  var groupId = document.getElementById('studentGroup').value;
+  var password = document.getElementById('studentPassword').value.trim();
+
+  if (!courseId || !groupId) {
+    showToast('يرجى اختيار الدورة والمجموعة', true);
+    return;
+  }
+  if (!password) {
+    showToast('يرجى إدخال كود المتابعة', true);
+    return;
+  }
+
+  var btn = document.getElementById('studentLoginBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span> جاري التحقق...';
+
+  db.ref('2026/students/' + courseId + '/' + groupId).once('value').then(function(snap) {
+    if (!snap.exists()) {
+      showToast('❌ لم يتم العثور على طالب بهذه البيانات', true);
+      resetStudentBtn();
+      return;
+    }
+    var found = false;
+    var studentData = null;
+    var studentId = null;
+    snap.forEach(function(child) {
+      var data = child.val();
+      if (data && data.password === password) {
+        found = true;
+        studentData = data;
+        studentId = child.key;
+      }
+    });
+    if (found) {
+      localStorage.setItem('studentSession', JSON.stringify({
+        role: 'student',
+        name: studentData.name || '',
+        studentId: studentId,
+        courseId: courseId,
+        groupId: groupId,
+        phone: studentData.phone || '',
+        timestamp: Date.now()
+      }));
+      window.location.href = 'student.html';
+    } else {
+      showToast('❌ كود المتابعة غير صحيح', true);
+      resetStudentBtn();
+    }
+  }).catch(function() {
+    showToast('❌ فشل الاتصال بقاعدة البيانات، تحقق من الإنترنت', true);
+    resetStudentBtn();
+  });
+}
+
+function resetStudentBtn() {
+  var btn = document.getElementById('studentLoginBtn');
+  btn.disabled = false;
+  btn.innerHTML = 'تسجيل الدخول';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>أكاديمية العلوم الشرعية - بكفور العرب</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="main-style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div class="scroll-buttons">
+  <button class="scroll-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fas fa-chevron-up"></i></button>
+  <button class="scroll-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})"><i class="fas fa-chevron-down"></i></button>
+</div>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <div class="nav-logo">
+      <img src="img/logo.jpg" alt="شعار الأكاديمية" class="logo-img">
+      <span class="logo-text">أكاديمية العلوم الشرعية</span>
+    </div>
+     <button class="nav-toggle" onclick="toggleNav()"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+    <ul class="nav-links">
+      <li><a href="#about">عن الأكاديمية</a></li>
+      <li><a href="#gallery">بعض فعاليات الأكاديمية</a></li>
+      <li><a href="#services">بوابة الخدمات</a></li>
+      <li><a href="login.html">تسجيل الدخول</a></li>
+      <li><a href="register.html" class="admin-btn">تسجيل جديد</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="nav-overlay" onclick="toggleNav()"></div>
+
+<section class="hero-section">
+  <div class="hero-icon">📖</div>
+  <h1>مرحباً بك في <span>أكاديمية العلوم الشرعية</span></h1>
+  <p>منصة تعليمية متكاملة لتحفيظ وتعليم العلوم الشرعية واللغة العربية. نسعى لتخريج جيلٍ مُزْهِر بالعلم والإيمان، متمسكٍ بكتاب الله وسنة نبيه.</p>
+  <div class="hero-buttons">
+    <a href="login.html" class="hero-btn hero-btn-primary"><i class="fas fa-sign-in-alt"></i> تسجيل الدخول</a>
+    <a href="register.html" class="hero-btn hero-btn-secondary"><i class="fas fa-user-plus"></i> إنشاء حساب جديد</a>
+  </div>
+</section>
+
+<section class="gallery-section" id="gallery">
+  <h2>بعض فعاليات الأكاديمية</h2>
+  <div class="gallery-slider">
+    <div class="slider-wrapper">
+      <img src="img/img2/IMG_5350.jpg" alt="صورة من الأكاديمية" class="slider-img active" data-index="0">
+      <img src="img/img2/IMG_5352.jpg" alt="صورة من الأكاديمية" class="slider-img" data-index="1">
+      <img src="img/img2/IMG_5358.jpg" alt="صورة من الأكاديمية" class="slider-img" data-index="2">
+      <img src="img/img2/IMG_5364.jpg" alt="صورة من الأكاديمية" class="slider-img" data-index="3">
+      <img src="img/img2/IMG_5370.jpg" alt="صورة من الأكاديمية" class="slider-img" data-index="4">
+      <img src="img/img2/IMG_5371.jpg" alt="صورة من الأكاديمية" class="slider-img" data-index="5">
+      <img src="img/img2/IMG_5507.jpg" alt="صورة من الأكاديمية" class="slider-img" data-index="6">
+      <img src="img/img2/IMG_5513.jpg" alt="صورة من الأكاديمية" class="slider-img" data-index="7">
+    </div>
+    <button class="slider-btn slider-prev" onclick="prevSlide()">&#10094;</button>
+    <button class="slider-btn slider-next" onclick="nextSlide()">&#10095;</button>
+    <div class="slider-dots"></div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<section class="portal-footer" id="services">
+  <h2>بوابة الخدمات</h2>
+  <div class="portal-grid">
+    <a href="login.html?mode=admin" class="portal-card admin">
+      <div class="icon"><i class="fas fa-key"></i></div>
+      <h3>دخول الإدارة</h3>
+      <span class="action-btn gold">دخول الإدارة</span>
+      <p>لوحة تحكم متكاملة لإدارة الطلاب والدرجات والحضور والرسوم والمحتوى التعليمي.</p>
+    </a>
+    <a href="login.html?mode=student" class="portal-card student">
+      <div class="icon"><i class="fas fa-user-graduate"></i></div>
+      <h3>دخول الطلاب</h3>
+      <span class="action-btn green">دخول الطالب</span>
+      <p>بوابة الطالب لمتابعة الملف الشخصي والكتب والمحاضرات والنتائج الدراسية.</p>
+    </a>
+    <a href="register.html" class="portal-card register">
+      <div class="icon"><i class="fas fa-user-plus"></i></div>
+      <h3>إنشاء حساب جديد</h3>
+      <span class="action-btn purple">تسجيل الآن</span>
+      <p>تسجيل طالب جديد في الأكاديمية واختيار الدورة والفرقة المناسبة.</p>
+    </a>
+    <a href="result.html" class="portal-card result">
+      <div class="icon"><i class="fas fa-file-signature"></i></div>
+      <h3>عرض النتيجة</h3>
+      <span class="action-btn green">عرض النتيجة مباشرة</span>
+      <p>دخول الطالب لإدخال رقم الجلوس وعرض شهادة النتيجة مباشرة.</p>
+    </a>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<section class="about-section" id="about">
+  <h2>عن الأكاديمية</h2>
+  <p>أكاديمية العلوم الشرعية بكفور العرب هي مؤسسة تعليمية رائدة تهدف إلى نشر العلوم الشرعية واللغة العربية بين طلاب العلم. نقدم برامج تعليمية متنوعة تشمل دورة الإعدادي، دورة الكبار، دورة الأطفال، ومعهد العلوم الشرعية.</p>
+  <p>نسعى من خلال مناهجنا المتميزة إلى بناء جيل واعٍ ومتمسك بالقيم الإسلامية، متمكن من علوم الشريعة واللغة العربية، قادر على العطاء والإسهام في بناء المجتمع.</p>
+</section>
+
+<div class="copyright">
+  جميع الحقوق محفوظة &copy; 2026 أكاديمية العلوم الشرعية بكفور العرب
+</div>
+
+<script>
+var currentSlide = 0;
+var totalSlides = 8;
+var slideInterval;
+
+function showSlide(index) {
+  var imgs = document.querySelectorAll('.slider-img');
+  imgs.forEach(function(img, i) {
+    img.classList.toggle('active', i === index);
+  });
+  var dots = document.querySelectorAll('.slider-dot');
+  dots.forEach(function(d, i) {
+    d.classList.toggle('active', i === index);
+  });
+  currentSlide = index;
+}
+
+function nextSlide() {
+  showSlide((currentSlide + 1) % totalSlides);
+  resetAutoPlay();
+}
+
+function prevSlide() {
+  showSlide((currentSlide - 1 + totalSlides) % totalSlides);
+  resetAutoPlay();
+}
+
+function goToSlide(index) {
+  showSlide(index);
+  resetAutoPlay();
+}
+
+function resetAutoPlay() {
+  clearInterval(slideInterval);
+  slideInterval = setInterval(nextSlide, 4000);
+}
+
+var dotsContainer = document.querySelector('.slider-dots');
+for (var i = 0; i < totalSlides; i++) {
+  var dot = document.createElement('span');
+  dot.className = 'slider-dot' + (i === 0 ? ' active' : '');
+  dot.setAttribute('onclick', 'goToSlide(' + i + ')');
+  dotsContainer.appendChild(dot);
+}
+
+showSlide(0);
+slideInterval = setInterval(nextSlide, 4000);
+
+var touchStartX = 0;
+var touchEndX = 0;
+var sliderEl = document.querySelector('.slider-wrapper');
+sliderEl.addEventListener('touchstart', function(e) { touchStartX = e.changedTouches[0].screenX; }, {passive:true});
+sliderEl.addEventListener('touchend', function(e) {
+  touchEndX = e.changedTouches[0].screenX;
+  var diff = touchStartX - touchEndX;
+  if (Math.abs(diff) > 50) {
+    if (diff > 0) nextSlide(); else prevSlide();
+  }
+}, {passive:true});
+
+function toggleNav() {
+  var nl = document.querySelector('.nav-links');
+  var no = document.querySelector('.nav-overlay');
+  var nt = document.querySelector('.nav-toggle');
+  if (nl) nl.classList.toggle('open');
+  if (no) no.classList.toggle('show');
+  if (nt) nt.classList.toggle('open');
+}
+</script>
+</body>
+</html>

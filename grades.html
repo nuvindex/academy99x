@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>رصد درجات الطلاب - منظومة 2026</title>
+<link rel="icon" href="https://i.ibb.co/XTyBkV3/3337123-ico.png">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+/* --- Reset & Base --- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+body {
+  font-family: 'Cairo', 'Segoe UI', 'Inter', sans-serif;
+  background: linear-gradient(135deg, #0b1120 0%, #0f1a2e 50%, #0b1120 100%);
+  min-height: 100vh;
+  color: #e2e8f0;
+  line-height: 1.6;
+}
+a { text-decoration: none; color: inherit; }
+ul { list-style: none; }
+
+/* --- Utilities --- */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.p-6 { padding: 24px; }
+.font-bold { font-weight: 700; }
+.font-black { font-weight: 900; }
+.text-xs { font-size: .75rem; }
+.font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.text-slate-100 { color: #f1f5f9; }
+.text-slate-400 { color: #94a3b8; }
+.text-emerald-400 { color: #34d399; }
+.text-emerald-300 { color: #6ee7b7; }
+.text-sky-300 { color: #7dd3fc; }
+.text-rose-400 { color: #fb7185; }
+.rounded-lg { border-radius: 10px; }
+
+/* --- Navbar --- */
+.navbar {
+  background: rgba(10, 17, 33, 0.97);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+}
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 64px;
+}
+.nav-logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.logo-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #04060a;
+  font-size: 1.1rem;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
+.logo-img img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.logo-text { font-size: 1.05rem; font-weight: 700; color: #ffffff; letter-spacing: 0.5px; white-space: nowrap; }
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-links a {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 10px;
+  transition: all 0.25s;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.nav-links a:hover { color: #ffffff; background: rgba(255, 255, 255, 0.07); }
+.nav-links a i { margin-left: 6px; font-size: 0.8rem; }
+.nav-links .admin-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #04060a;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+.nav-links .admin-btn:hover { opacity: 0.9; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35); }
+.nav-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s;
+  position: relative;
+  z-index: 110;
+}
+.nav-toggle:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.15); }
+.nav-toggle .bar {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+.nav-toggle .bar:nth-child(2) { margin: 5px 0; }
+.nav-toggle.open .bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-toggle.open .bar:nth-child(2) { opacity: 0; }
+.nav-toggle.open .bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.nav-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 90;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* --- Layout --- */
+.main-content { max-width: 1200px; margin: 0 auto; padding: 30px 20px 80px; }
+.container {
+  background: rgba(22, 30, 49, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 28px 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  animation: fadeInUp 0.6s ease;
+}
+.page-header { margin-bottom: 26px; }
+.page-header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.page-header h1 i { color: #10b981; }
+.page-header p { font-size: 0.9rem; color: #64748b; }
+
+h2, h3 { color: #ffffff; font-weight: 700; }
+.section-title {
+  font-size: 1.2rem;
+  margin: 26px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title i { color: #10b981; }
+
+/* --- Forms --- */
+label { display: block; font-size: 0.82rem; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
+select, input[type="number"], input[type="text"] {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+select:focus, input:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+select option { background: #1e293b; color: #e2e8f0; }
+.form-control::placeholder { color: #64748b; }
+
+/* --- Panels & Grids --- */
+.panel {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.ranges-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+
+/* --- Grade Ranges --- */
+.range-item {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.range-item:hover { border-color: rgba(16, 185, 129, 0.25); }
+.range-item label { margin-bottom: 6px; }
+.range-inputs { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.range-inputs input {
+  width: 60px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 4px 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+.range-inputs input:focus { outline: none; border-color: #10b981; }
+.range-inputs span { color: #64748b; font-size: 0.85rem; }
+
+/* --- Buttons --- */
+.btn {
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  white-space: nowrap;
+  color: #ffffff;
+}
+.btn:hover { transform: translateY(-2px); opacity: 0.92; }
+.btn-save { background: linear-gradient(135deg, #10b981, #059669); color: #04060a; box-shadow: 0 6px 18px rgba(16, 185, 129, 0.25); }
+.btn-emerald { background: linear-gradient(135deg, #10b981, #059669); }
+.btn-secondary { background: #334155; }
+.btn-gold { background: linear-gradient(135deg, #d97706, #b45309); }
+.btn-danger { background: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.25); color: #f87171; }
+.btn-danger:hover { background: rgba(239, 68, 68, 0.35); }
+.btn-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+.button-group { display: flex; justify-content: center; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.whatsapp {
+  background: #25D366;
+  color: #ffffff;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+}
+.whatsapp:hover { opacity: 0.85; }
+
+.disable-btn {
+  background: rgba(239, 68, 68, 0.25);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.disable-btn:hover { background: rgba(239, 68, 68, 0.4); }
+.disable-btn.enable {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+.disable-btn.enable:hover { background: rgba(16, 185, 129, 0.35); }
+tr.row-disabled td { opacity: 0.45; }
+tr.row-disabled td:first-child { opacity: 0.45; }
+tr.row-disabled .grade-text { text-decoration: line-through; }
+
+/* --- Table --- */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.4);
+}
+.table-container th:first-child,
+.table-container td:first-child { position: sticky; right: 0; z-index: 2; }
+.table-container th:first-child { background: rgba(16, 185, 129, 0.2); z-index: 3; }
+.table-container td:first-child { background: rgba(15, 23, 42, 0.95); }
+table { width: 100%; border-collapse: collapse; }
+th {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+td {
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  text-align: center;
+  color: #cbd5e1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+tr:hover td { background: rgba(255, 255, 255, 0.02); }
+.subject-pass-row { background: rgba(15, 23, 42, 0.6); }
+.subject-pass-row td { color: #94a3b8; }
+
+/* --- Inline Inputs --- */
+input.grade {
+  width: 60px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 4px 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+input.grade:focus { outline: none; border-color: #10b981; }
+input.note {
+  width: 100%;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 6px;
+  font-family: inherit;
+}
+input.absence {
+  width: 80px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 4px 6px;
+  font-weight: 700;
+  font-family: inherit;
+}
+input.subject-pass-rate {
+  width: 50px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 3px 4px;
+  font-size: 0.75rem;
+  font-family: inherit;
+}
+input.subject-pass-rate:focus { outline: none; border-color: #10b981; }
+
+/* --- Modal --- */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.show { opacity: 1; visibility: visible; }
+.modal-content {
+  background: rgba(22, 30, 49, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 28px 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  max-width: 420px;
+  width: 90%;
+}
+.modal-content p { font-size: 1rem; color: #e2e8f0; font-weight: 700; }
+
+/* --- Animations --- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .logo-text { font-size: 0.9rem; }
+  .nav-container { height: 56px; padding: 0 16px; position: relative; }
+  .nav-toggle { display: flex; }
+  .nav-links {
+    visibility: hidden;
+    opacity: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 290px;
+    height: 100vh;
+    background: rgba(8, 14, 28, 0.99);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    z-index: 99;
+    overflow-y: auto;
+    box-shadow: 10px 0 60px rgba(0, 0, 0, 0.6);
+    transform: translateX(100%);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .nav-links.open { visibility: visible; opacity: 1; transform: translateX(0); }
+  .nav-links::before {
+    content: '';
+    display: block;
+    padding: 24px 20px 16px;
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    margin-bottom: 8px;
+  }
+  .nav-links a {
+    text-align: right;
+    width: 100%;
+    font-size: 0.92rem;
+    padding: 14px 20px;
+    border-radius: 0;
+    margin: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #cbd5e1;
+    font-weight: 500;
+  }
+  .nav-links a i { width: 20px; text-align: center; font-size: 0.95rem; color: #64748b; transition: color 0.2s; }
+  .nav-links a:hover { background: rgba(16, 185, 129, 0.06); color: #ffffff; }
+  .nav-links a:hover i { color: #10b981; }
+  .nav-links .admin-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #04060a;
+    text-align: center;
+    justify-content: center;
+    border-radius: 12px;
+    margin: 12px 16px 8px;
+    padding: 14px 20px;
+    border-bottom: none;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+    font-weight: 700;
+  }
+  .main-content { padding: 20px 12px 60px; }
+  .container { padding: 20px 16px; border-radius: 16px; }
+  .page-header h1 { font-size: 1.2rem; }
+  th, td { padding: 8px 10px; font-size: 0.78rem; }
+  .btn { padding: 10px 16px; font-size: 0.85rem; }
+  input.grade { width: 52px; }
+}
+@media (max-width: 480px) {
+  .nav-links { width: 100%; }
+  .nav-links a { font-size: 0.85rem; padding: 12px 18px; }
+  .page-header h1 { font-size: 1rem; }
+  .grid-2, .grid-3, .ranges-grid { grid-template-columns: 1fr; }
+  .section-title { font-size: 1rem; }
+  .button-group { gap: 8px; }
+  th, td { padding: 6px 8px; font-size: 0.72rem; }
+}
+
+/* --- Print --- */
+@media print {
+  body { background: #ffffff !important; color: #111111; }
+  .navbar, .nav-overlay, .no-print, .modal-overlay { display: none !important; }
+  .main-content { padding: 0; max-width: 100%; }
+  .container { box-shadow: none; margin: 0; padding: 0; border: none; background: #ffffff; animation: none; }
+  h1, h2, h3, label, th, td { color: #111111 !important; }
+  th { background: #f0f0f0 !important; color: #333333 !important; }
+  td { color: #333333; }
+  input.grade, input.note, input.absence, input.subject-pass-rate,
+  select, input[type="number"], input[type="text"] {
+    background: #ffffff; border: 1px solid #dddddd; color: #111111;
+  }
+  .table-container { border: none; background: #ffffff; }
+  .table-container th:first-child, .table-container td:first-child { background: #ffffff; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar no-print">
+    <div class="nav-container">
+        <div class="nav-logo">
+            <div class="logo-img"><img src="https://i.ibb.co/XTyBkV3/3337123-ico.png" alt="الشعار"></div>
+            <span class="logo-text">منظومة رصد الدرجات 2026</span>
+        </div>
+        <button class="nav-toggle" id="navToggle" onclick="toggleNav()" aria-label="القائمة">
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        </button>
+        <div class="nav-links" id="navLinks">
+            <a href="#settings" onclick="closeNav()"><i class="fas fa-sliders-h"></i> الإعدادات</a>
+            <a href="#grades" onclick="closeNav()"><i class="fas fa-table"></i> كشف الدرجات</a>
+            <a href="#" onclick="closeNav(); window.print()"><i class="fas fa-print"></i> طباعة</a>
+            <a href="#" class="admin-btn" onclick="closeNav(); saveAllGrades()"><i class="fas fa-cloud-upload-alt"></i> حفظ سحابي</a>
+            <a href="#" onclick="closeNav(); logout()" style="color:#ef4444"><i class="fas fa-sign-out-alt"></i> خروج</a>
+        </div>
+    </div>
+</nav>
+<div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
+
+<div class="main-content">
+<div class="container">
+    <div class="page-header no-print">
+        <h1><i class="fas fa-clipboard-check"></i> رصد درجات ومعدلات الطلاب</h1>
+        <p>منظومة المتابعة والرصد والتقديرات للعام الدراسي 2026</p>
+    </div>
+
+    <div class="no-print grid-2" id="settings">
+        <div>
+            <label for="courseSelect">اختر المرحلة / الدورة:</label>
+            <select id="courseSelect" onchange="loadGroups()">
+                <option value="">-- اختر الدورة أولاً --</option>
+                <option value="prep">دورة الإعدادي</option>
+                <option value="adults">دورة الكبار</option>
+                <option value="kids">دورة الأطفال</option>
+                <option value="institute">معهد العلوم الشرعية</option>
+            </select>
+        </div>
+        <div>
+            <label for="groupSelect">اختر الفرقة / المجموعة:</label>
+            <select id="groupSelect">
+                <option value="">-- اختر الدورة أولاً --</option>
+            </select>
+        </div>
+    </div>
+
+    <h3 class="section-title no-print"><i class="fas fa-sliders-h"></i> تحديد نسب النجاح والتقديرات العامة</h3>
+    <div class="grid-3 no-print panel">
+        <div>
+            <label>نسبة النجاح العامة (%):</label>
+            <input type="number" id="overallPass" value="50" min="0" max="100">
+        </div>
+        <div>
+            <label>عدد المواد للرسوب المباشر:</label>
+            <input type="number" id="failSubjectThreshold" value="3" min="1">
+        </div>
+        <div>
+            <label>قيمة الخصم عن كل يوم غياب:</label>
+            <input type="number" id="absencePenalty" value="1" min="0">
+        </div>
+    </div>
+
+    <div id="gradeRanges" class="ranges-grid no-print panel">
+        <div class="range-item">
+            <label><span>ممتاز:</span>
+                <div class="range-inputs"><input type="number" class="rangeMin" value="90"><span>-</span><input type="number" class="rangeMax" value="100"></div>
+            </label>
+        </div>
+        <div class="range-item">
+            <label><span>جيد جدًا:</span>
+                <div class="range-inputs"><input type="number" class="rangeMin" value="80"><span>-</span><input type="number" class="rangeMax" value="89.75"></div>
+            </label>
+        </div>
+        <div class="range-item">
+            <label><span>جيد:</span>
+                <div class="range-inputs"><input type="number" class="rangeMin" value="70"><span>-</span><input type="number" class="rangeMax" value="79.75"></div>
+            </label>
+        </div>
+        <div class="range-item">
+            <label><span>مقبول:</span>
+                <div class="range-inputs"><input type="number" class="rangeMin" value="50"><span>-</span><input type="number" class="rangeMax" value="69.75"></div>
+            </label>
+        </div>
+        <div class="range-item">
+            <label><span>راسب:</span>
+                <div class="range-inputs"><input type="number" class="rangeMin" value="0"><span>-</span><input type="number" class="rangeMax" value="49.75"></div>
+            </label>
+        </div>
+    </div>
+
+    <div class="no-print button-group" style="margin-top:-6px; margin-bottom:4px;">
+        <button class="btn btn-save" onclick="saveSettings()"><i class="fas fa-save"></i> حفظ نسب النجاح والتقديرات</button>
+    </div>
+    <p class="no-print" style="text-align:center; font-size:0.78rem; color:#64748b; margin-bottom:8px;">
+        <i class="fas fa-info-circle"></i> التقدير يُحسب من المتوسط % — الدرجة تاخد أعلى تقدير يتحقق له حد (من)
+    </p>
+
+    <h3 class="section-title" id="grades"><i class="fas fa-table"></i> كشف درجات الطلاب التفصيلي</h3>
+    <div class="no-print panel">
+        <label for="searchInput">البحث الذكي (بالاسم أو برقم الجلوس):</label>
+        <input type="text" id="searchInput" placeholder="أدخل اسم الطالب أو رقم الجلوس..." class="form-control text-right">
+    </div>
+
+    <div class="table-container">
+        <table id="gradesTable">
+          <thead>
+            <tr id="gradesHeader">
+              <th>الاسم رباعي</th>
+              <th>رقم الجلوس</th>
+              <th>فقه</th>
+              <th>حديث</th>
+              <th>عقيدة</th>
+              <th>سيرة وآداب</th>
+              <th>المجموع بعد الخصم</th>
+              <th>المتوسط %</th>
+              <th>التقدير النهائي</th>
+              <th>ملاحظات إدارية</th>
+              <th>أيام الغياب</th>
+              <th>إجراء المتابعة</th>
+            </tr>
+            <tr class="subject-pass-row">
+              <td class="font-bold text-xs">درجة نجاح المادة ⬇️</td>
+              <td></td>
+              <td><input type="number" class="subject-pass-rate" data-subject="فقه" value="50"></td>
+              <td><input type="number" class="subject-pass-rate" data-subject="حديث" value="50"></td>
+              <td><input type="number" class="subject-pass-rate" data-subject="عقيدة" value="50"></td>
+              <td><input type="number" class="subject-pass-rate" data-subject="سيرة وآداب" value="50"></td>
+              <td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+          </thead>
+          <tbody>
+              <tr><td colspan="12" class="text-center p-6 text-slate-400">يرجى تحديد المرحلة التعليمية والفرقة أولاً لبناء شبكة البيانات.</td></tr>
+          </tbody>
+        </table>
+    </div>
+
+    <div class="button-group no-print">
+        <button class="btn btn-save" onclick="saveAllGrades()"><i class="fas fa-cloud-upload-alt"></i> حفظ جميع الدرجات سحابياً</button>
+        <button class="btn btn-secondary" onclick="exportData('all')"><i class="fas fa-file-export"></i> تصدير الكشف كاملاً</button>
+        <button class="btn btn-emerald" onclick="exportData('pass')"><i class="fas fa-check-circle"></i> تصدير الناجحين</button>
+        <button class="btn btn-gold" onclick="exportData('second_chance')"><i class="fas fa-redo-alt"></i> تصدير الدور الثاني</button>
+        <button class="btn btn-danger" onclick="exportData('fail')"><i class="fas fa-times-circle"></i> تصدير الراسبين</button>
+        <button class="btn btn-purple" onclick="window.print()"><i class="fas fa-print"></i> طباعة الكشف الحالي</button>
+    </div>
+</div>
+</div>
+
+<div id="messageModal" class="modal-overlay">
+    <div class="modal-content"><p id="messageText" class="font-bold"></p></div>
+</div>
+
+<script>
+(function(){
+  const s = JSON.parse(localStorage.getItem('adminSession'));
+  if (!s || s.role !== 'admin' || (Date.now() - s.timestamp > 86400000)) {
+    localStorage.removeItem('adminSession');
+    window.location.href = 'login.html?mode=admin';
+  }
+})();
+function logout() { localStorage.removeItem('adminSession'); window.location.href = 'index.html'; }
+// تكوين خادم قاعدة البيانات السحابية 2026
+const firebaseConfig = {
+  apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+  authDomain: "adawra-63958.firebaseapp.com",
+  databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+  projectId: "adawra-63958",
+  storageBucket: "adawra-63958.appspot.com",
+  messagingSenderId: "814651258066",
+  appId: "1:814651258066:web:e0a5e2b9b47810c688690b",
+  measurementId: "G-08QPF1FH54"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let studentsData = {};
+let subjectsList = ["فقه","حديث","عقيدة","سيرة وآداب"];
+let currentGroupId = null;
+let currentCourseId = null;
+let subjectsPassRates = { "فقه":50,"حديث":50,"عقيدة":50,"سيرة وآداب":50 };
+
+function toggleNav(){
+    document.getElementById('navToggle').classList.toggle('open');
+    document.getElementById('navLinks').classList.toggle('open');
+    document.getElementById('navOverlay').style.display = document.getElementById('navLinks').classList.contains('open') ? 'block' : 'none';
+}
+function closeNav(){
+    document.getElementById('navToggle').classList.remove('open');
+    document.getElementById('navLinks').classList.remove('open');
+    document.getElementById('navOverlay').style.display = 'none';
+}
+
+function showMessage(message){
+    const modal=document.getElementById('messageModal');
+    document.getElementById('messageText').textContent=message;
+    modal.classList.add('show');
+    setTimeout(()=>modal.classList.remove('show'),2500);
+}
+
+// دالة جلب الفرق والمجموعات المصححة للعام الدراسي الحالي 2026
+function loadGroups(){
+    currentCourseId = document.getElementById("courseSelect").value;
+    const select = document.getElementById("groupSelect");
+    const tbody = document.querySelector("#gradesTable tbody");
+    
+    tbody.innerHTML = `<tr><td colspan="12" class="text-center p-6 text-slate-400">يرجى تحديد الفرقة الدراسية لبناء الشبكة.</td></tr>`;
+    
+    if (!currentCourseId) {
+        select.innerHTML = '<option value="">-- اختر الدورة أولاً --</option>';
+        return;
+    }
+    
+    select.innerHTML = '<option value="">⏳ جاري سحب المجموعات من السحابة...</option>';
+
+    db.ref(`2026/groups/${currentCourseId}`).once("value", snapshot => {
+        select.innerHTML = '<option value="">-- اختر الفرقة المستهدفة --</option>';
+        if (!snapshot.exists()) {
+            select.innerHTML = '<option value="">⚠️ لا توجد أي فرق مسجلة</option>';
+            return;
+        }
+        snapshot.forEach(child => {
+            const option = document.createElement("option");
+            option.value = child.key;
+            option.textContent = child.val().name;
+            select.appendChild(option);
+        });
+    });
+}
+
+document.getElementById("groupSelect").addEventListener('change', (e) => { 
+    currentGroupId = e.target.value; 
+    loadStudents(); 
+});
+
+function loadStudents(){
+    if (!currentGroupId || !currentCourseId) return;
+    const tbody = document.querySelector("#gradesTable tbody");
+    tbody.innerHTML = `<tr><td colspan="12" class="text-center p-6 text-emerald-400 font-bold"><i class="fas fa-spinner fa-spin"></i> جاري استيراد سجلات الطلاب والدرجات...</td></tr>`;
+    document.getElementById('searchInput').value = '';
+
+    const studentsRef = db.ref(`2026/students/${currentCourseId}/${currentGroupId}`);
+    const gradesRef = db.ref(`2026/grades/${currentCourseId}/${currentGroupId}`);
+    const notesRef = db.ref(`2026/notes/${currentCourseId}/${currentGroupId}`); 
+    const absenceRef = db.ref(`2026/absence/${currentCourseId}/${currentGroupId}`); 
+    const disabledRef = db.ref(`2026/disabled/${currentCourseId}/${currentGroupId}`); 
+
+    Promise.all([studentsRef.once("value"), gradesRef.once("value"), notesRef.once("value"), absenceRef.once("value"), disabledRef.once("value")]).then(snapshots => {
+        const studentSnapshot = snapshots[0];
+        const gradesSnapshot = snapshots[1];
+        const notesSnapshot = snapshots[2];
+        const absenceSnapshot = snapshots[3];
+        const disabledSnapshot = snapshots[4];
+
+        if(!studentSnapshot.exists()){
+            tbody.innerHTML = `<tr><td colspan="12" class="text-center p-6 text-rose-400 font-bold">📋 لا يوجد طلاب مقيدين في هذه المجموعة حالياً.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = "";
+        const gradesDataFromDB = gradesSnapshot.val() || {};
+        const notesDataFromDB = notesSnapshot.val() || {};
+        const absenceDataFromDB = absenceSnapshot.val() || {};
+        const disabledDataFromDB = disabledSnapshot.val() || {};
+        studentsData = {};
+        let seatIndex = 1;
+
+        studentSnapshot.forEach(snap => {
+            const studentId = snap.key;
+            const stu = snap.val();
+
+            const seatValue = stu.studentNumber || stu.seq || stu['رقم الجلوس'] || seatIndex;
+            const gradesForStudent = gradesDataFromDB[studentId] || {};
+            const noteForStudent = notesDataFromDB[studentId] || "";
+            const absenceForStudent = absenceDataFromDB[studentId] || 0;
+            const disabledForStudent = !!disabledDataFromDB[studentId] || !!stu.blocked;
+
+            studentsData[studentId] = { ...stu, grades: gradesForStudent, note: noteForStudent, absence: absenceForStudent, seatNumber: seatValue, disabled: disabledForStudent };
+
+            const tr = document.createElement("tr");
+            tr.dataset.studentId = studentId;
+            tr.dataset.seatNumber = seatValue;
+            if (disabledForStudent) tr.classList.add('row-disabled'); 
+
+            tr.innerHTML = `<td><b class="text-slate-100">${stu.name}</b></td><td class="font-mono font-bold">${seatValue}</td>` + subjectsList.map(sub => {
+                const val = studentsData[studentId].grades[sub] !== undefined ? studentsData[studentId].grades[sub] : '';
+                return `<td><input type="number" class="grade" data-student="${studentId}" data-subject="${sub}" value="${val}" min="0" max="100"></td>`;
+            }).join('') +
+            `<td class="total font-bold text-emerald-300"></td>
+              <td class="average font-bold text-sky-300"></td>
+              <td class="grade-text font-black text-xs"></td>
+              <td><input type="text" class="note" data-student="${studentId}" value="${noteForStudent}" placeholder="-"></td>
+              <td><input type="number" class="absence font-bold" data-student="${studentId}" value="${absenceForStudent}" min="0"></td>
+              <td><button class="disable-btn text-xs font-bold rounded-lg ${disabledForStudent ? 'enable' : ''}" data-student="${studentId}" onclick="toggleDisable('${studentId}')"><i class="fas ${disabledForStudent ? 'fa-user-check' : 'fa-user-lock'}"></i> ${disabledForStudent ? 'إعادة تفعيل' : 'تعطيل الحساب'}</button></td>`;
+            tbody.appendChild(tr);
+            seatIndex++;
+        });
+
+        attachGradeListeners();
+        attachNoteListeners();
+        attachAbsenceListeners();
+        attachSearchListener();
+        updateTotals();
+    });
+}
+
+function attachGradeListeners(){
+    document.querySelectorAll(".grade").forEach(input=>{
+        input.addEventListener("input", e=>{
+            const stuKey=e.target.dataset.student;
+            const sub=e.target.dataset.subject;
+            const val=parseFloat(e.target.value);
+            if(isNaN(val)) delete studentsData[stuKey].grades[sub];
+            else studentsData[stuKey].grades[sub]=val;
+            updateTotals();
+        });
+    });
+}
+
+function attachNoteListeners(){
+    document.querySelectorAll(".note").forEach(input=>{
+        input.addEventListener("input", e=>{
+            const stuKey = e.target.dataset.student;
+            studentsData[stuKey].note = e.target.value;
+        });
+    });
+}
+
+function attachAbsenceListeners(){
+    document.querySelectorAll(".absence").forEach(input=>{
+        input.addEventListener("input", e=>{
+            const stuKey = e.target.dataset.student;
+            studentsData[stuKey].absence = parseInt(e.target.value) || 0;
+            updateTotals();
+        });
+    });
+}
+
+function attachPassRateListeners(){
+    document.querySelectorAll(".subject-pass-rate").forEach(input=>{
+        input.addEventListener("input", e=>{
+            const sub=e.target.dataset.subject;
+            subjectsPassRates[sub]=parseFloat(e.target.value)||0;
+            updateTotals();
+        });
+    });
+}
+
+function attachSearchListener() {
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const tbody = document.querySelector("#gradesTable tbody");
+        tbody.querySelectorAll('tr').forEach(row => {
+            if(row.cells.length < 2) return;
+            const studentName = row.cells[0].textContent.toLowerCase();
+            const seatNumber = row.cells[1].textContent.toLowerCase();
+            if (studentName.includes(query) || seatNumber.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+}
+
+function attachSettingsListeners(){
+    ['overallPass','failSubjectThreshold','absencePenalty'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){ el.addEventListener('input', updateTotals); el.addEventListener('change', updateTotals); }
+    });
+    const rangesBox=document.getElementById('gradeRanges');
+    if(rangesBox){
+        rangesBox.addEventListener('input', updateTotals);
+        rangesBox.addEventListener('change', updateTotals);
+    }
+    attachPassRateListeners();
+}
+attachSettingsListeners();
+
+function syncPassThresholds(){
+    const pass = parseFloat(document.getElementById('overallPass').value);
+    if(isNaN(pass) || pass<0 || pass>100){ showMessage("⚠️ أدخل نسبة نجاح صحيحة من 0 إلى 100"); return false; }
+    document.querySelectorAll('.subject-pass-rate').forEach(inp=>{
+        inp.value = pass;
+        subjectsPassRates[inp.dataset.subject] = pass;
+    });
+    document.querySelectorAll('#gradeRanges .range-item').forEach(item=>{
+        const text = item.querySelector('span').textContent.trim();
+        if(text==='مقبول') item.querySelector('.rangeMin').value = pass;
+        if(text==='راسب') item.querySelector('.rangeMax').value = pass;
+    });
+    updateTotals();
+    return true;
+}
+
+function saveSettings(){
+    if(!syncPassThresholds()) return;
+    const ranges = Array.from(document.querySelectorAll("#gradeRanges label")).map(label=>{
+        const text=label.textContent.split(":")[0].trim();
+        const min=parseFloat(label.querySelector(".rangeMin").value);
+        const max=parseFloat(label.querySelector(".rangeMax").value);
+        return {label:text,min,max};
+    });
+    const passRates = {};
+    document.querySelectorAll(".subject-pass-rate").forEach(inp=>{ passRates[inp.dataset.subject]=parseFloat(inp.value)||0; });
+    const settings = {
+        overallPass: parseFloat(document.getElementById('overallPass').value) || 50,
+        failSubjectThreshold: parseInt(document.getElementById('failSubjectThreshold').value,10) || 3,
+        absencePenalty: parseFloat(document.getElementById('absencePenalty').value) || 0,
+        ranges,
+        subjectPassRates: passRates
+    };
+    db.ref('2026/settings').set(settings)
+        .then(()=>showMessage("✅ تم حفظ نسب النجاح والتقديرات بنجاح"))
+        .catch(()=>showMessage("⚠️ فشل الحفظ، تحقق من الاتصال"));
+}
+
+function loadSettings(){
+    db.ref('2026/settings').once("value", snap=>{
+        if(!snap.exists()) return;
+        const s = snap.val();
+        if(s.overallPass!==undefined) document.getElementById('overallPass').value = s.overallPass;
+        if(s.failSubjectThreshold!==undefined) document.getElementById('failSubjectThreshold').value = s.failSubjectThreshold;
+        if(s.absencePenalty!==undefined) document.getElementById('absencePenalty').value = s.absencePenalty;
+        if(Array.isArray(s.ranges)){
+            const items = document.querySelectorAll('#gradeRanges .range-item');
+            s.ranges.forEach((r,i)=>{
+                if(items[i] && r){
+                    const minEl=items[i].querySelector('.rangeMin');
+                    const maxEl=items[i].querySelector('.rangeMax');
+                    if(r.min!==undefined) minEl.value=r.min;
+                    if(r.max!==undefined) maxEl.value=r.max;
+                }
+            });
+        }
+        if(s.subjectPassRates){
+            subjectsPassRates = {...subjectsPassRates, ...s.subjectPassRates};
+            document.querySelectorAll('.subject-pass-rate').forEach(inp=>{
+                if(s.subjectPassRates[inp.dataset.subject]!==undefined) inp.value=s.subjectPassRates[inp.dataset.subject];
+            });
+        }
+        updateTotals();
+    });
+}
+loadSettings();
+
+function updateTotals(){
+    const tbody=document.querySelector("#gradesTable tbody");
+    if(!tbody) return;
+    const ranges = Array.from(document.querySelectorAll("#gradeRanges label")).map(label=>{
+        const text=label.textContent.split(":")[0].trim();
+        const min=parseFloat(label.querySelector(".rangeMin").value);
+        const max=parseFloat(label.querySelector(".rangeMax").value);
+        return {label:text,min,max};
+    });
+    const failThreshold=parseInt(document.getElementById('failSubjectThreshold').value,10);
+    const overallPassRate=parseFloat(document.getElementById("overallPass").value);
+    const penalty = parseFloat(document.getElementById('absencePenalty').value) || 0;
+
+    tbody.querySelectorAll("tr").forEach(tr=>{
+        const gradeInput = tr.querySelector(".grade");
+        if(!gradeInput) return;
+        const stuKey=gradeInput.dataset.student;
+        const stu=studentsData[stuKey];
+        let total=0,count=0,failedSubjectsCount=0,hasGrades=false;
+
+        subjectsList.forEach(sub=>{
+            const score=parseFloat(stu.grades[sub]);
+            if(!isNaN(score)){
+                total+=score;
+                count++;
+                hasGrades=true;
+                if(score<subjectsPassRates[sub]) failedSubjectsCount++;
+            }
+        });
+
+        const absenceCount = parseInt(stu.absence || 0);
+        const deduction = absenceCount * penalty;
+        const adjustedTotal = Math.max(total - deduction, 0);
+        const average = (count ? (adjustedTotal / count).toFixed(2) : 0);
+
+        const totalCell = tr.querySelector(".total");
+        const avgCell = tr.querySelector(".average");
+        const txtCell = tr.querySelector(".grade-text");
+
+        if(hasGrades){
+            totalCell.textContent = adjustedTotal;
+            avgCell.textContent = average + "%";
+
+            if(failedSubjectsCount>=failThreshold) {
+                txtCell.textContent="راسب";
+                txtCell.style.color = "#f87171";
+            } else if(failedSubjectsCount>0 || average<overallPassRate) {
+                txtCell.textContent="دور ثاني";
+                txtCell.style.color = "#fbbf24";
+            } else {
+                let gradeText = getGradeText(average,ranges);
+                txtCell.textContent = gradeText === "راسب" ? "مقبول" : gradeText;
+                txtCell.style.color = "#34d399";
+            }
+        } else {
+            totalCell.textContent="";
+            avgCell.textContent="";
+            txtCell.textContent="";
+        }
+    });
+}
+
+function getGradeText(score,ranges){
+    const sorted = [...ranges].sort((a,b)=>(b.min||0)-(a.min||0));
+    for(let r of sorted) if(score>=r.min) return r.label;
+    return "";
+}
+
+function saveAllGrades(){
+    if(!currentGroupId || !currentCourseId){ showMessage("⚠️ الرجاء اختيار المرحلة والفرقة أولاً"); return; }
+    for(let key in studentsData){
+        db.ref(`2026/grades/${currentCourseId}/${currentGroupId}/${key}`).set(studentsData[key].grades);
+        db.ref(`2026/notes/${currentCourseId}/${currentGroupId}/${key}`).set(studentsData[key].note); 
+        db.ref(`2026/absence/${currentCourseId}/${currentGroupId}/${key}`).set(studentsData[key].absence); 
+    }
+    showMessage("✅ تم حفظ وتثبيت جميع السجلات والدرجات بنجاح");
+}
+
+function toggleDisable(studentId){
+    if(!currentGroupId || !currentCourseId){ showMessage("⚠️ اختر الدورة والفرقة أولاً"); return; }
+    const stu = studentsData[studentId];
+    if(!stu) return;
+    stu.disabled = !stu.disabled;
+    Promise.all([
+        db.ref(`2026/disabled/${currentCourseId}/${currentGroupId}/${studentId}`).set(stu.disabled),
+        db.ref(`2026/students/${currentCourseId}/${currentGroupId}/${studentId}/blocked`).set(stu.disabled)
+    ]).then(()=>{
+            const tr = document.querySelector(`tr[data-student-id="${studentId}"]`);
+            if(tr){
+                tr.classList.toggle('row-disabled', stu.disabled);
+                const btn = tr.querySelector('.disable-btn');
+                if(btn){
+                    btn.classList.toggle('enable', stu.disabled);
+                    btn.innerHTML = stu.disabled
+                        ? '<i class="fas fa-user-check"></i> إعادة تفعيل'
+                        : '<i class="fas fa-user-lock"></i> تعطيل الحساب';
+                }
+            }
+            showMessage(stu.disabled ? "✅ تم تعطيل الحساب وسيُحظر ظهور نتيجته" : "✅ تم إعادة تفعيل الحساب");
+        })
+        .catch(()=>{ stu.disabled = !stu.disabled; showMessage("⚠️ فشل الحفظ، تحقق من الاتصال"); });
+}
+
+function exportData(exportType) {
+    if (!currentGroupId || !currentCourseId) {
+        showMessage("الرجاء تحديد الدورة والفرقة أولاً.");
+        return;
+    }
+
+    const dataToExport = [];
+
+    const headersRow = document.querySelector("#gradesTable thead tr");
+    const subjectHeaders = Array.from(headersRow?.querySelectorAll("th") || [])
+        .slice(2)
+        .map(th => th.getAttribute("data-subject") || th.textContent.trim());
+
+    const header = ["الاسم", "رقم الجلوس", ...subjectHeaders, "المجموع بعد الخصم", "المتوسط %", "التقدير", "ملاحظات", "غياب"];
+    dataToExport.push(header);
+
+    const gradesTableBody = document.querySelector("#gradesTable tbody");
+    gradesTableBody.querySelectorAll("tr").forEach(row => {
+        if(row.cells.length < 2 || !row.querySelector(".total")) return;
+        if(row.classList.contains('row-disabled')) return;
+        
+        const studentName = row.cells[0].textContent;
+        const seatNumber = row.cells[1].textContent;
+        const total = row.querySelector(".total").textContent;
+        const average = row.querySelector(".average").textContent;
+        const gradeText = row.querySelector(".grade-text").textContent;
+        const note = row.querySelector(".note") ? row.querySelector(".note").value : "";
+        const absenceInput = row.querySelector(".absence");
+        const absenceVal = absenceInput ? absenceInput.value : "";
+
+        if (total === "" && average === "" && gradeText === "") return;
+
+        let studentStatus = "";
+        if (gradeText === "راسب") studentStatus = "fail";
+        else if (gradeText === "دور ثاني") studentStatus = "second_chance";
+        else if (["ممتاز", "جيد جدًا", "جيد", "مقب"].some(t => gradeText.includes(t))) studentStatus = "pass";
+        else studentStatus = "unknown";
+
+        if (exportType === 'all' || exportType === studentStatus) {
+            const rowData = [studentName, seatNumber];
+            subjectHeaders.forEach(subject => {
+                const gradeInput = row.querySelector(`input.grade[data-subject="${subject}"]`);
+                rowData.push(gradeInput ? gradeInput.value : "");
+            });
+            while (rowData.length < header.length) rowData.push("");
+            dataToExport.push(rowData);
+        }
+    });
+
+    if (dataToExport.length <= 1) {
+        showMessage("📋 لا توجد بيانات مطابقة لتصديرها.");
+        return;
+    }
+
+    const worksheet = XLSX.utils.aoa_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "الدرجات والتقييم");
+    
+    const groupSelect = document.getElementById("groupSelect");
+    const groupName = groupSelect.options[groupSelect.selectedIndex].text;
+    XLSX.writeFile(workbook, `درجات_${groupName}_${exportType}_2026.xlsx`);
+    showMessage("📊 تم تصدير ملف Excel بنجاح!");
+}
+</script>
+</body>
+</html>

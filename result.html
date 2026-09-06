@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نتيجة الطالب - أكاديمية العلوم الشرعية 2026</title>
+<link rel="icon" href="https://i.ibb.co/XTyBkV3/3337123-ico.png">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+/* --- Reset & Base --- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+body {
+  font-family: 'Cairo', 'Segoe UI', 'Inter', sans-serif;
+  background: linear-gradient(135deg, #0b1120 0%, #0f1a2e 50%, #0b1120 100%);
+  min-height: 100vh;
+  color: #e2e8f0;
+  line-height: 1.6;
+}
+a { text-decoration: none; color: inherit; }
+ul { list-style: none; }
+.hidden { display: none !important; }
+.text-center { text-align: center; }
+.font-bold { font-weight: 700; }
+
+/* --- Navbar --- */
+.navbar {
+  background: rgba(10, 17, 33, 0.97);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+}
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 64px;
+}
+.nav-logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.logo-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #04060a;
+  font-size: 1.1rem;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
+.logo-img img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.logo-text { font-size: 1.05rem; font-weight: 700; color: #ffffff; letter-spacing: 0.5px; white-space: nowrap; }
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-links a {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 10px;
+  transition: all 0.25s;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.nav-links a:hover { color: #ffffff; background: rgba(255, 255, 255, 0.07); }
+.nav-links a i { margin-left: 6px; font-size: 0.8rem; }
+.nav-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s;
+  position: relative;
+  z-index: 110;
+}
+.nav-toggle:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.15); }
+.nav-toggle .bar {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+.nav-toggle .bar:nth-child(2) { margin: 5px 0; }
+.nav-toggle.open .bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-toggle.open .bar:nth-child(2) { opacity: 0; }
+.nav-toggle.open .bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.nav-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 90;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* --- Layout --- */
+.main-content { max-width: 1200px; margin: 0 auto; padding: 30px 20px 80px; }
+.container {
+  background: rgba(22, 30, 49, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 28px 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  animation: fadeInUp 0.6s ease;
+}
+.narrow { max-width: 480px; margin: 0 auto; }
+.result-wrap { max-width: 600px; margin: 0 auto; }
+
+/* --- Forms --- */
+label { display: block; font-size: 0.82rem; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
+select, input[type="number"], input[type="text"], input[type="password"] {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+select:focus, input:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+select option { background: #1e293b; color: #e2e8f0; }
+.pin-input { text-align: center; letter-spacing: 0.3em; font-size: 1.15rem; font-weight: 700; }
+.field-group { margin-bottom: 16px; }
+
+/* --- Buttons --- */
+.btn {
+  padding: 12px 22px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  white-space: nowrap;
+  color: #ffffff;
+}
+.btn:hover { transform: translateY(-2px); opacity: 0.92; }
+.btn-emerald { background: linear-gradient(135deg, #10b981, #059669); color: #04060a; box-shadow: 0 6px 18px rgba(16, 185, 129, 0.25); }
+.btn-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+.btn-block { width: 100%; }
+
+/* --- Certificate --- */
+.cert-header { text-align: center; border-bottom: 2px solid rgba(16, 185, 129, 0.15); padding-bottom: 24px; margin-bottom: 28px; }
+.cert-logo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  display: block;
+  object-fit: cover;
+  background: #0f172a;
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.3);
+}
+.cert-header h1 { font-size: 1.5rem; font-weight: 900; color: #ffffff; }
+.cert-header p { color: #34d399; font-weight: 700; margin-top: 6px; }
+
+.info-panel {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.info-row { padding: 12px 0; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.info-row:first-child { border-top: none; padding-top: 0; }
+.info-row:last-child { padding-bottom: 0; }
+.info-label { font-size: 0.75rem; color: #64748b; font-weight: 700; }
+.info-value { font-size: 1.2rem; color: #ffffff; font-weight: 700; margin-top: 2px; }
+
+.grades-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 24px; }
+.grade-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+.grade-card .subject-name { font-size: 1rem; color: #cbd5e1; font-weight: 700; margin-bottom: 4px; }
+.grade-card .score { font-size: 1.9rem; color: #34d399; font-weight: 900; }
+.fail-badge {
+  display: inline-block;
+  margin-top: 8px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+
+.stat-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid;
+  margin-bottom: 12px;
+}
+.stat-box span { font-weight: 700; }
+.stat-box b { font-size: 1.15rem; }
+.stat-box.blue { background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.25); }
+.stat-box.blue span { color: #93c5fd; }
+.stat-box.blue b { color: #bfdbfe; }
+.stat-box.red { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.25); }
+.stat-box.red span { color: #f87171; }
+.stat-box.red b { color: #fecaca; }
+.stat-box.green { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25); }
+.stat-box.green span { color: #34d399; }
+.stat-box.green b { color: #a7f3d0; }
+.stat-box.amber { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.25); }
+.stat-box.amber span { color: #fbbf24; }
+.stat-box.amber b { color: #fde68a; }
+.stat-box.purple { background: rgba(139, 92, 246, 0.12); border-color: rgba(139, 92, 246, 0.25); }
+.stat-box.purple span { color: #a78bfa; }
+.stat-box.purple b { color: #ddd6fe; }
+.stat-box.note { display: block; background: rgba(15, 23, 42, 0.5); border-color: rgba(255, 255, 255, 0.08); }
+.stat-box.note span { color: #94a3b8; margin-bottom: 4px; }
+.stat-box.note p { color: #cbd5e1; margin-top: 4px; }
+
+.blocked-box {
+  display: none;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 14px;
+  padding: 22px 20px;
+  text-align: center;
+  margin-top: 18px;
+}
+.blocked-box.show { display: block; }
+.blocked-box i { font-size: 2rem; color: #f87171; margin-bottom: 10px; }
+.blocked-box h3 { color: #f87171; font-size: 1.1rem; margin-bottom: 6px; }
+.blocked-box p { color: #fecaca; font-size: 0.9rem; }
+
+.cert-actions { display: flex; gap: 12px; margin-top: 24px; }
+.cert-actions .btn { flex: 1; }
+
+/* --- Animations --- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .logo-text { font-size: 0.9rem; }
+  .nav-container { height: 56px; padding: 0 16px; position: relative; }
+  .nav-toggle { display: flex; }
+  .nav-links {
+    visibility: hidden;
+    opacity: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 290px;
+    height: 100vh;
+    background: rgba(8, 14, 28, 0.99);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    z-index: 99;
+    overflow-y: auto;
+    box-shadow: 10px 0 60px rgba(0, 0, 0, 0.6);
+    transform: translateX(100%);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .nav-links.open { visibility: visible; opacity: 1; transform: translateX(0); }
+  .nav-links::before {
+    content: '';
+    display: block;
+    padding: 24px 20px 16px;
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    margin-bottom: 8px;
+  }
+  .nav-links a {
+    text-align: right;
+    width: 100%;
+    font-size: 0.92rem;
+    padding: 14px 20px;
+    border-radius: 0;
+    margin: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #cbd5e1;
+    font-weight: 500;
+  }
+  .nav-links a i { width: 20px; text-align: center; font-size: 0.95rem; color: #64748b; transition: color 0.2s; }
+  .nav-links a:hover { background: rgba(16, 185, 129, 0.06); color: #ffffff; }
+  .nav-links a:hover i { color: #10b981; }
+  .main-content { padding: 20px 12px 60px; }
+  .container { padding: 20px 16px; border-radius: 16px; }
+  .cert-header h1 { font-size: 1.2rem; }
+  .grades-grid { gap: 10px; }
+}
+@media (max-width: 480px) {
+  .nav-links { width: 100%; }
+  .nav-links a { font-size: 0.85rem; padding: 12px 18px; }
+  .grades-grid { grid-template-columns: 1fr; }
+  .cert-header h1 { font-size: 1.05rem; }
+  .cert-logo { width: 80px; height: 80px; font-size: 2.2rem; }
+}
+
+/* --- Print --- */
+@media print {
+  body { background: #ffffff !important; color: #111111; }
+  .navbar, .nav-overlay, .no-print { display: none !important; }
+  .main-content { padding: 0; max-width: 100%; }
+  .container { box-shadow: none; margin: 0; padding: 0; border: none; background: #ffffff; animation: none; }
+  .cert-header { border-bottom: 2px solid #e5e7eb; }
+  .cert-header h1 { color: #111111 !important; }
+  .cert-header p { color: #065f46 !important; }
+  .cert-logo { box-shadow: none; }
+  .info-panel, .grade-card { background: #ffffff !important; border: 1px solid #dddddd !important; }
+  .info-label { color: #666666 !important; }
+  .info-value { color: #111111 !important; }
+  .grade-card .subject-name { color: #333333 !important; }
+  .grade-card .score { color: #065f46 !important; }
+  .fail-badge { background: #fee2e2 !important; color: #b91c1c !important; }
+  .stat-box { background: #f5f5f5 !important; }
+  .stat-box span, .stat-box b, .stat-box p { color: #111111 !important; }
+  select, input[type="number"], input[type="text"], input[type="password"] {
+    background: #ffffff; border: 1px solid #dddddd; color: #111111;
+  }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar no-print">
+    <div class="nav-container">
+        <div class="nav-logo">
+            <div class="logo-img"><img src="https://i.ibb.co/XTyBkV3/3337123-ico.png" alt="الشعار"></div>
+            <span class="logo-text">أكاديمية العلوم الشرعية 2026</span>
+        </div>
+        <button class="nav-toggle" id="navToggle" onclick="toggleNav()" aria-label="القائمة">
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        </button>
+        <div class="nav-links" id="navLinks">
+            <a href="#searchSection" onclick="closeNav()"><i class="fas fa-search"></i> استعلام النتيجة</a>
+        </div>
+    </div>
+</nav>
+<div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
+
+<div class="main-content">
+
+    <div id="searchSection" class="container narrow no-print">
+        <div class="text-center mb-8">
+            <h2 class="font-bold" style="font-size:1.4rem; color:#ffffff;"><i class="fas fa-user-graduate" style="color:#10b981;"></i> استعلام النتائج</h2>
+            <p style="color:#64748b; font-size:0.9rem; margin-top:4px;">أدخل رقم الجلوس لعرض شهادة النتيجة</p>
+        </div>
+        <div class="field-group">
+            <select id="courseSelect" onchange="loadGroups()">
+                <option value="">-- اختر الدورة --</option>
+                <option value="prep">دورة الإعدادي</option>
+                <option value="adults">دورة الكبار</option>
+                <option value="kids">دورة الأطفال</option>
+                <option value="institute">معهد العلوم الشرعية</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <select id="groupSelect">
+                <option value="">-- اختر الفرقة --</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <input type="password" id="pinInput" class="pin-input" placeholder="رقم الجلوس">
+        </div>
+        <button onclick="fetchResult()" class="btn btn-emerald btn-block"><i class="fas fa-scroll"></i> عرض الشهادة</button>
+        <div id="blockedBox" class="blocked-box">
+            <i class="fas fa-user-lock"></i>
+            <h3>كلمة السر صحيحة</h3>
+            <p>لكن هذا الحساب موقوف — برجاء مراجعة الإدارة لعرض النتيجة.</p>
+        </div>
+    </div>
+
+    <div id="resultSection" class="hidden container result-wrap">
+        <div class="cert-header">
+            <img src="https://i.ibb.co/XTyBkV3/3337123-ico.png" alt="الشعار" class="cert-logo">
+            <h1>أكاديمية العلوم الشرعية بكفور العرب</h1>
+            <p><i class="fas fa-certificate"></i> نتيجة اختبارات الدورة الصيفية</p>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-row">
+                <div class="info-label">اسم الطالب</div>
+                <div class="info-value" id="resName"></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">الدورة</div>
+                <div class="info-value" id="resCourse"></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">الفرقة</div>
+                <div class="info-value" id="resGroup"></div>
+            </div>
+        </div>
+
+        <div id="gradesGrid" class="grades-grid"></div>
+
+        <div class="stat-box blue">
+            <span>المجموع قبل الخصم:</span>
+            <b id="resTotalBefore"></b>
+        </div>
+        <div class="stat-box red">
+            <span>أيام الغياب:</span>
+            <b id="resAbsence"></b>
+        </div>
+        <div class="stat-box green">
+            <span>المجموع بعد الخصم:</span>
+            <b id="resTotalAfter"></b>
+        </div>
+        <div class="stat-box amber">
+            <span>النسبة المئوية:</span>
+            <b id="resAvg"></b>
+        </div>
+        <div class="stat-box purple">
+            <span>التقدير النهائي:</span>
+            <b id="resGrade"></b>
+        </div>
+        <div class="stat-box note">
+            <span>ملاحظات إدارية:</span>
+            <p id="resNote"></p>
+        </div>
+
+        <div class="cert-actions no-print">
+            <button onclick="window.print()" class="btn btn-purple"><i class="fas fa-print"></i> طباعة الشهادة</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const firebaseConfig = { databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function toggleNav(){
+    document.getElementById('navToggle').classList.toggle('open');
+    document.getElementById('navLinks').classList.toggle('open');
+    document.getElementById('navOverlay').style.display = document.getElementById('navLinks').classList.contains('open') ? 'block' : 'none';
+}
+function closeNav(){
+    document.getElementById('navToggle').classList.remove('open');
+    document.getElementById('navLinks').classList.remove('open');
+    document.getElementById('navOverlay').style.display = 'none';
+}
+
+function loadGroups(){
+    const c = document.getElementById("courseSelect").value;
+    const s = document.getElementById("groupSelect");
+    if(!c) return;
+    db.ref(`2026/groups/${c}`).once("value", snap => {
+        s.innerHTML = '<option value="">-- اختر الفرقة --</option>';
+        snap.forEach(g => { s.innerHTML += `<option value="${g.key}">${g.val().name || g.key}</option>`; });
+    });
+}
+
+async function fetchResult(){
+    const courseEl = document.getElementById("courseSelect");
+    const groupEl = document.getElementById("groupSelect");
+    const c = courseEl.value;
+    const g = groupEl.value;
+    const pass = document.getElementById("pinInput").value;
+
+    if(!c || !g || !pass) return alert("يرجى إكمال البيانات");
+
+    const snap = await db.ref(`2026/students/${c}/${g}`).once("value");
+    const students = snap.val();
+    let sKey = null, sData = null;
+    for(let k in students) if(String(students[k].password) === String(pass)) { sKey = k; sData = students[k]; }
+    if(!sKey) return alert("رقم الجلوس غير صحيح");
+
+    document.getElementById("blockedBox").classList.remove("show");
+    if(sData.blocked || sData.disabled){
+        document.getElementById("searchSection").classList.remove("hidden");
+        document.getElementById("resultSection").classList.add("hidden");
+        document.getElementById("blockedBox").classList.add("show");
+        return;
+    }
+
+    const [gSnap, nSnap, aSnap, setSnap, disSnap] = await Promise.all([
+        db.ref(`2026/grades/${c}/${g}/${sKey}`).once("value"),
+        db.ref(`2026/notes/${c}/${g}/${sKey}`).once("value"),
+        db.ref(`2026/absence/${c}/${g}/${sKey}`).once("value"),
+        db.ref('2026/settings').once("value"),
+        db.ref(`2026/disabled/${c}/${g}/${sKey}`).once("value")
+    ]);
+
+    if(disSnap.val()){
+        document.getElementById("searchSection").classList.remove("hidden");
+        document.getElementById("resultSection").classList.add("hidden");
+        document.getElementById("blockedBox").classList.add("show");
+        return;
+    }
+
+    const grades = gSnap.val() || {};
+    const note = nSnap.val() || "لا توجد ملاحظات إضافية.";
+    const abs = aSnap.val() || 0;
+    const set = setSnap.val() || {};
+    const failThreshold = set.failSubjectThreshold || 3;
+    const overallPassRate = set.overallPass || 50;
+    const penalty = set.absencePenalty || 1;
+    const ranges = Array.isArray(set.ranges) ? set.ranges : [];
+    const passRates = set.subjectPassRates || {};
+
+    let totalRaw = 0, count = 0, failedCount = 0;
+    const grid = document.getElementById("gradesGrid");
+    grid.innerHTML = "";
+
+    for (let sub in grades) {
+        let score = parseFloat(grades[sub]);
+        totalRaw += score; count++;
+        const passRate = passRates[sub] || 50;
+        if(score < passRate) failedCount++;
+        grid.innerHTML += `<div class="grade-card">
+            <div class="subject-name">${sub}</div>
+            <div class="score">${score}</div>
+            ${score < passRate ? '<div class="fail-badge">دور ثاني</div>' : ''}
+        </div>`;
+    }
+
+    const deduction = abs * penalty;
+    const totalAfter = totalRaw - deduction;
+    const avgNum = count ? (totalAfter / count) : 0;
+    const avg = avgNum.toFixed(1);
+
+    let gradeText;
+    if (failedCount >= failThreshold) {
+        gradeText = "راسب";
+    } else if (failedCount > 0 || avgNum < overallPassRate) {
+        gradeText = "دور ثاني";
+    } else {
+        gradeText = getGradeText(avgNum, ranges);
+        if(!gradeText){
+            if(avgNum >= 90) gradeText = "ممتاز";
+            else if(avgNum >= 80) gradeText = "جيد جداً";
+            else if(avgNum >= 70) gradeText = "جيد";
+            else gradeText = "مقبول";
+        }
+    }
+    if(gradeText === "راسب") gradeText = "مقبول";
+
+    document.getElementById("searchSection").classList.add("hidden");
+    document.getElementById("resultSection").classList.remove("hidden");
+
+    document.getElementById("resName").innerText = sData.name;
+    document.getElementById("resCourse").innerText = courseEl.options[courseEl.selectedIndex].text;
+    document.getElementById("resGroup").innerText = groupEl.options[groupEl.selectedIndex].text;
+
+    document.getElementById("resTotalBefore").innerText = totalRaw;
+    document.getElementById("resAbsence").innerText = abs + " يوم";
+    document.getElementById("resTotalAfter").innerText = totalAfter;
+    document.getElementById("resAvg").innerText = avg + "%";
+    document.getElementById("resGrade").innerText = gradeText;
+    document.getElementById("resNote").innerText = note;
+}
+
+function getGradeText(score, ranges){
+    if(!ranges.length) return "";
+    const sorted = [...ranges].sort((a,b)=>(b.min||0)-(a.min||0));
+    for(let r of sorted) if(score>=r.min) return r.label;
+    return "";
+}
+</script>
+</body>
+</html>

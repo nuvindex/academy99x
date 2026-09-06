@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الرئيسية | أكاديمية العلوم الشرعية</title>
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="main-style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <style>
+        .login-code-badge{display:inline-block;background:#0f172a;border:1px dashed #d97706;border-radius:8px;padding:3px 12px;font-family:'Courier New',monospace;font-weight:700;color:#f59e0b;font-size:0.85rem;letter-spacing:3px;cursor:pointer;transition:all 0.2s}
+        .login-code-badge:hover{background:#1e293b}
+    </style>
+</head>
+<body>
+
+    <div class="scroll-buttons">
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="scroll-btn"><i class="fas fa-arrow-up"></i></button>
+        <button onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})" class="scroll-btn"><i class="fas fa-arrow-down"></i></button>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="img/logo.jpg" alt="شعار الأكاديمية" class="logo-img">
+                <span class="logo-text">اكاديمية العلوم الشرعية بكفور العرب</span>
+            </div>
+            <button class="nav-toggle" onclick="toggleNav()"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+            <ul class="nav-links">
+                <li><a href="student.html">الملف الشخصي</a></li>
+                <li><a href="student.html#books">المكتبة</a></li>
+                <li><a href="student.html#videos">المحاضرات</a></li>
+                <li><a href="result.html" target="_blank">النتائج</a></li>
+                <li id="admin-link" style="display:none"><a href="dashboard.html" class="admin-btn">لوحة الإدارة</a></li>
+                <li><a href="#" onclick="logout()" class="logout-btn">تسجيل الخروج</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="nav-overlay" onclick="toggleNav()"></div>
+
+    <main class="main-content">
+
+        <header class="welcome-section">
+            <h1>مرحباً بك يا طالب العلم في رحاب الأكاديمية</h1>
+            <p>وفقك الله وسدد خطاك في تحصيل العلم الشرعي</p>
+        </header>
+
+        <div class="dashboard-grid">
+
+            <a href="student.html" class="dashboard-card-link">
+                <section class="dashboard-card profile-card">
+                    <div class="card-icon"><i class="fas fa-user"></i></div>
+                    <h2>الملف الشخصي</h2>
+                    <div class="profile-info">
+                        <p><strong>اسم الطالب:</strong> <span id="display-name">—</span></p>
+                        <p><strong>الفرقة الدراسية:</strong> <span id="display-grade">—</span></p>
+                        <p><strong>كود الدخول:</strong> <span class="login-code-badge" id="display-code" onclick="copyCode()" title="انقر للنسخ">—</span></p>
+                    </div>
+                </section>
+            </a>
+
+            <a href="student.html#books" class="dashboard-card-link">
+                <section class="dashboard-card">
+                    <div class="card-icon"><i class="fas fa-book"></i></div>
+                    <h2>مكتبة المتون والكتب</h2>
+                    <p>تصفح وحمل الكتب الشرعية المقررة عليك.</p>
+                </section>
+            </a>
+
+            <a href="student.html#videos" class="dashboard-card-link">
+                <section class="dashboard-card">
+                    <div class="card-icon"><i class="fas fa-video"></i></div>
+                    <h2>المحاضرات المرئية</h2>
+                    <p>شاهد تسجيلات الدروس والشروحات العلمية.</p>
+                </section>
+            </a>
+
+            <a href="result.html" target="_blank" class="dashboard-card-link">
+                <section class="dashboard-card">
+                    <div class="card-icon"><i class="fas fa-chart-bar"></i></div>
+                    <h2>لوحة النتائج والتقديرات</h2>
+                    <p>تابع درجاتك وتقديرك العام في الأكاديمية.</p>
+                </section>
+            </a>
+
+        </div>
+    </main>
+
+    <script>
+        function copyCode(){
+            var code = document.getElementById('display-code').textContent;
+            if (code === '—') return;
+            navigator.clipboard.writeText(code).then(function(){
+                var el = document.getElementById('display-code');
+                el.textContent = '✅ تم النسخ!';
+                setTimeout(function(){ el.textContent = code; }, 2000);
+            });
+        }
+        function logout() { localStorage.removeItem('studentSession'); window.location.href = 'index.html'; }
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+          authDomain: "adawra-63958.firebaseapp.com",
+          databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+          projectId: "adawra-63958",
+          storageBucket: "adawra-63958.firebasestorage.app",
+          messagingSenderId: "814651258066",
+          appId: "1:814651258066:web:e0a5e2b9b47810c688690b"
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.database();
+
+        var session = JSON.parse(localStorage.getItem('studentSession'));
+        if (!session || !session.loggedIn || Date.now() - session.timestamp > 86400000) {
+          window.location.href = 'login.html';
+        } else {
+          if (session.role === 'admin') { document.getElementById('admin-link').style.display = ''; }
+          document.getElementById('display-name').textContent = session.name || '—';
+          document.getElementById('display-grade').textContent = session.grade || '—';
+          document.getElementById('display-code').textContent = session.loginCode || '—';
+        }
+
+        function toggleNav() {
+          var nl = document.querySelector('.nav-links');
+          var no = document.querySelector('.nav-overlay');
+          var nt = document.querySelector('.nav-toggle');
+          if (nl) nl.classList.toggle('open');
+          if (no) no.classList.toggle('show');
+          if (nt) nt.classList.toggle('open');
+        }
+    </script>
+
+</body>
+</html>

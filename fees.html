@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الرسوم المالية - أكاديمية العلوم الشرعية</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="main-style.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  --accent-green: #10b981;
+  --accent-gold: #d97706;
+  --accent-red: #ef4444;
+  --accent-blue: #3b82f6;
+}
+.fees-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0b1120 0%, #0f1a2e 50%, #0b1120 100%);
+  position: relative;
+}
+.fees-container::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 50%, rgba(16,185,129,0.03) 0%, transparent 50%),
+              radial-gradient(circle at 70% 50%, rgba(217,119,6,0.02) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+.fees-container > * { position: relative; z-index: 1; }
+.mode-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.mode-tab {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.6);
+  color: #94a3b8;
+}
+.mode-tab.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #04060a;
+  border-color: #10b981;
+}
+.mode-tab:hover:not(.active) {
+  background: rgba(255,255,255,0.05);
+  color: #e2e8f0;
+}
+.fee-card {
+  background: rgba(22, 30, 49, 0.85);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.fee-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+}
+.fee-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.fee-card-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+.fee-card-seq {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+}
+.fee-card-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.fee-input {
+  width: 80px;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  text-align: center;
+  font-weight: 700;
+}
+.fee-input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+}
+.remaining-badge {
+  font-size: 0.9rem;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: center;
+}
+.remaining-badge.positive { color: #f87171; }
+.remaining-badge.zero { color: #10b981; }
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+}
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #10b981;
+  cursor: pointer;
+}
+.fee-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.default-fee-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 14px;
+  padding: 14px 18px;
+}
+.default-fee-row label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.default-fee-row input {
+  width: 100px;
+}
+.report-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.student-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+@media (max-width: 480px) {
+  .student-grid { grid-template-columns: 1fr; }
+  .fee-card-body { flex-direction: column; align-items: stretch; }
+  .fee-card-actions { justify-content: center; }
+}
+</style>
+</head>
+<body>
+<div class="fees-container">
+  <nav class="navbar">
+    <div class="nav-container">
+    <div class="nav-logo">
+      <img src="img/logo.jpg" alt="شعار الأكاديمية" class="logo-img">
+      <span class="logo-text">أكاديمية العلوم الشرعية</span>
+      </div>
+       <button class="nav-toggle" onclick="toggleNav()"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+      <ul class="nav-links">
+        <li><a href="dashboard.html">لوحة التحكم</a></li>
+        <li><a href="register.html">تسجيل طلاب</a></li>
+        <li><a href="grades.html">رصد الدرجات</a></li>
+        <li><a href="attendance.html">الحضور</a></li>
+        <li><a href="students.html">الإدارة</a></li>
+        <li><a href="result.html">النتائج</a></li>
+        <li><a href="#" onclick="logout()" style="color:#ef4444">خروج</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="nav-overlay" onclick="toggleNav()"></div>
+
+  <div class="scroll-buttons">
+    <button class="scroll-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="أعلى الصفحة">⬆</button>
+    <button class="scroll-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="أسفل الصفحة">⬇</button>
+  </div>
+
+  <div class="main-content">
+    <h1 class="page-title">💰 الرسوم المالية</h1>
+    <p class="page-subtitle">إدارة المصروفات الدراسية - تسجيل المدفوعات والمتبقي من الرسوم</p>
+
+    <div class="filter-grid">
+      <div>
+        <label class="form-label">اختر الدورة</label>
+        <select id="course" class="form-control" onchange="loadGroups()">
+          <option value="">-- اختر الدورة --</option>
+          <option value="prep">دورة الإعدادي</option>
+          <option value="adults">دورة الكبار</option>
+          <option value="kids">دورة الأطفال</option>
+          <option value="institute">دورة معهد العلوم</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">اختر الفرقة</label>
+        <select id="group" class="form-control" onchange="fetchData()">
+          <option value="">-- اختر الفرقة --</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="default-fee-row">
+      <label>الرسوم الافتراضية:</label>
+      <input type="number" id="defaultFee" class="form-control" value="300" onchange="updateDefaultFee()" style="width:100px">
+      <span style="color:#64748b;font-size:0.82rem;">جنيه</span>
+    </div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tabEdit" onclick="switchMode('edit')">🛠️ تعديل</button>
+      <button class="mode-tab" id="tabReport" onclick="switchMode('report')">📊 تقرير</button>
+    </div>
+
+    <div id="editMode">
+      <input type="text" id="searchInput" class="form-control" placeholder="🔍 بحث بالاسم أو الرقم المسلسل..." onkeyup="filterEdit()" style="margin-bottom:16px">
+      <div id="editContainer" class="student-grid"></div>
+    </div>
+
+    <div id="reportMode" class="card" style="display:none">
+      <div class="report-actions">
+        <button class="btn btn-primary" onclick="window.print()">🖨️ طباعة</button>
+        <button class="btn btn-gold" onclick="exportExcel()">📊 تصدير Excel</button>
+      </div>
+      <div class="table-container">
+        <table id="reportTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الاسم</th>
+              <th>المدفوع</th>
+              <th>المتبقي</th>
+            </tr>
+          </thead>
+          <tbody id="reportBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const s = JSON.parse(localStorage.getItem('adminSession'));
+  if (!s || s.role !== 'admin' || (Date.now() - s.timestamp > 86400000)) {
+    localStorage.removeItem('adminSession');
+    window.location.href = 'login.html?mode=admin';
+  }
+})();
+function logout() { localStorage.removeItem('adminSession'); window.location.href = 'index.html'; }
+const firebaseConfig = {
+  apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+  authDomain: "adawra-63958.firebaseapp.com",
+  databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+  projectId: "adawra-63958"
+};
+
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.database();
+
+
+let defaultFee = 300;
+let currentStudents = [];
+let currentFees = {};
+
+function getDefaultFee() {
+  return parseInt(document.getElementById('defaultFee').value) || 300;
+}
+
+function updateDefaultFee() {
+  defaultFee = getDefaultFee();
+  const c = document.getElementById('course').value;
+  const g = document.getElementById('group').value;
+  if (c && g) {
+    renderEditMode();
+    renderReportMode();
+  }
+}
+
+async function loadGroups() {
+  const c = document.getElementById('course').value;
+  const gSelect = document.getElementById('group');
+  if (!c) { gSelect.innerHTML = '<option value="">-- اختر الفرقة --</option>'; return; }
+  gSelect.innerHTML = '<option value="">جاري التحميل...</option>';
+  try {
+    const snap = await db.ref(`2026/groups/${c}`).once('value');
+    gSelect.innerHTML = '<option value="">-- اختر الفرقة --</option>';
+    if (snap.exists()) {
+      snap.forEach(s => {
+        const name = s.val().name || s.key;
+        gSelect.innerHTML += `<option value="${s.key}">${name}</option>`;
+      });
+    } else {
+      gSelect.innerHTML = '<option value="">لا توجد فرق</option>';
+    }
+  } catch (e) {
+    gSelect.innerHTML = '<option value="">خطأ في التحميل</option>';
+    showToast('خطأ في الاتصال بقاعدة البيانات');
+  }
+}
+
+async function fetchData() {
+  const c = document.getElementById('course').value;
+  const g = document.getElementById('group').value;
+  if (!c || !g) return;
+  try {
+    const [stuSnap, feesSnap] = await Promise.all([
+      db.ref(`2026/students/${c}/${g}`).once('value'),
+      db.ref(`2026/fees/${c}/${g}`).once('value')
+    ]);
+    currentStudents = [];
+    if (stuSnap.exists()) {
+      stuSnap.forEach(s => {
+        currentStudents.push({ id: s.key, ...s.val() });
+      });
+    }
+    currentFees = feesSnap.val() || {};
+    renderEditMode();
+    renderReportMode();
+  } catch (e) {
+    showToast('خطأ في تحميل البيانات');
+  }
+}
+
+function renderEditMode() {
+  const container = document.getElementById('editContainer');
+  container.innerHTML = '';
+  currentStudents.forEach(s => {
+    const id = s.id;
+    const paid = currentFees[id]?.paid || 0;
+    const rec = currentFees[id]?.received || false;
+    const rem = defaultFee - paid;
+    const card = document.createElement('div');
+    card.className = 'fee-card';
+    card.setAttribute('data-name', (s.name || '').replace(/"/g, '&quot;'));
+    card.setAttribute('data-seq', s.seq || '');
+    card.innerHTML = `
+      <div class="fee-card-header">
+        <span class="fee-card-name">${s.name || 'بدون اسم'}</span>
+        <span class="fee-card-seq">#${s.seq || '-'}</span>
+      </div>
+      <div class="fee-card-body">
+        <input type="number" class="fee-input" value="${paid > 0 ? paid : ''}" placeholder="0" onchange="updateFee('${s.id}', this.value)" oninput="updateRemaining('${s.id}', this.value)">
+        <span class="remaining-badge ${rem > 0 ? 'positive' : 'zero'}" id="rem-${s.id}">${rem}</span>
+        <label class="checkbox-label">
+          <input type="checkbox" ${rec ? 'checked' : ''} onchange="updateRec('${s.id}', this.checked)">
+          استلام
+        </label>
+        <button class="whatsapp-btn" onclick="sendWhatsApp('${s.id}')" style="margin-right:auto">📱 واتساب</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function renderReportMode() {
+  const tbody = document.getElementById('reportBody');
+  tbody.innerHTML = '';
+  currentStudents.forEach(s => {
+    const id = s.id;
+    const paid = currentFees[id]?.paid || 0;
+    const rem = defaultFee - paid;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${s.seq || '-'}</td>
+      <td>${s.name || 'بدون اسم'}</td>
+      <td>${paid}</td>
+      <td style="font-weight:700;color:${rem > 0 ? '#f87171' : '#10b981'}">${rem}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function switchMode(mode) {
+  const editMode = document.getElementById('editMode');
+  const reportMode = document.getElementById('reportMode');
+  const tabEdit = document.getElementById('tabEdit');
+  const tabReport = document.getElementById('tabReport');
+  if (mode === 'edit') {
+    editMode.style.display = 'block';
+    reportMode.style.display = 'none';
+    tabEdit.classList.add('active');
+    tabReport.classList.remove('active');
+  } else {
+    editMode.style.display = 'none';
+    reportMode.style.display = 'block';
+    tabEdit.classList.remove('active');
+    tabReport.classList.add('active');
+  }
+}
+
+function filterEdit() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('.fee-card').forEach(card => {
+    const name = (card.getAttribute('data-name') || '').toLowerCase();
+    const seq = (card.getAttribute('data-seq') || '').toLowerCase();
+    card.style.display = (name.includes(query) || seq.includes(query)) ? '' : 'none';
+  });
+}
+
+function updateRemaining(id, val) {
+  const paid = parseInt(val) || 0;
+  const rem = defaultFee - paid;
+  const el = document.getElementById(`rem-${id}`);
+  if (el) {
+    el.textContent = rem;
+    el.className = `remaining-badge ${rem > 0 ? 'positive' : 'zero'}`;
+  }
+}
+
+async function updateFee(id, val) {
+  const c = document.getElementById('course').value;
+  const g = document.getElementById('group').value;
+  if (!c || !g) return;
+  const paid = parseInt(val) || 0;
+  try {
+    await db.ref(`2026/fees/${c}/${g}/${id}/paid`).set(paid);
+    currentFees[id] = currentFees[id] || {};
+    currentFees[id].paid = paid;
+    showToast('✅ تم حفظ المبلغ');
+  } catch (e) {
+    showToast('❌ خطأ في الحفظ');
+  }
+}
+
+async function updateRec(id, val) {
+  const c = document.getElementById('course').value;
+  const g = document.getElementById('group').value;
+  if (!c || !g) return;
+  try {
+    await db.ref(`2026/fees/${c}/${g}/${id}/received`).set(val);
+    currentFees[id] = currentFees[id] || {};
+    currentFees[id].received = val;
+    showToast(val ? '✅ تم تأكيد الاستلام' : '✅ تم إلغاء الاستلام');
+  } catch (e) {
+    showToast('❌ خطأ في الحفظ');
+  }
+}
+
+function sendWhatsApp(id) {
+  const s = currentStudents.find(st => st.id === id);
+  if (!s) return;
+  const paid = currentFees[id]?.paid || 0;
+  const rem = defaultFee - paid;
+  const phone = s.phone || '';
+  if (!phone) { showToast('❌ لا يوجد رقم هاتف للطالب'); return; }
+  const msg = `السلام عليكم ورحمة الله وبركاته\n\nالطالب: ${s.name}\nالمدفوع: ${paid} ج\nالمتبقي: ${rem} ج\n\nأكاديمية العلوم الشرعية`;
+  window.open(`https://wa.me/${phone.replace(/^0/, '20')}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function showToast(msg) {
+  let toast = document.getElementById('toastMsg');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toastMsg';
+    toast.className = 'message-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+function exportExcel() {
+  const table = document.getElementById('reportTable');
+  if (!table || table.rows.length <= 1) { showToast('❌ لا توجد بيانات للتصدير'); return; }
+  XLSX.writeFile(XLSX.utils.table_to_book(table), 'التقرير_المالي.xlsx');
+  showToast('✅ تم تصدير الملف');
+}
+function toggleNav() {
+  var nl = document.querySelector('.nav-links');
+  var no = document.querySelector('.nav-overlay');
+  var nt = document.querySelector('.nav-toggle');
+  if (nl) nl.classList.toggle('open');
+  if (no) no.classList.toggle('show');
+  if (nt) nt.classList.toggle('open');
+}
+</script>
+</body>
+</html>

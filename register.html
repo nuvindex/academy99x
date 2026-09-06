@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل طلاب | أكاديمية العلوم الشرعية</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="main-style.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<style>
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #0b1120 0%, #0f1a2e 50%, #0b1120 100%);
+}
+.register-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+}
+.register-card {
+  width: 100%;
+  max-width: 520px;
+}
+.register-card .card {
+  padding: 32px 28px;
+  animation: fadeInUp 0.5s ease;
+}
+.register-card .card:hover {
+  transform: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+.form-title {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.form-title h2 {
+  font-size: 1.5rem;
+  color: #ffffff;
+  font-weight: 700;
+}
+.form-title p {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+.form-group {
+  margin-bottom: 18px;
+}
+.password-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.password-field input {
+  flex: 1;
+  direction: ltr;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 6px;
+  color: #f59e0b !important;
+}
+.password-field .btn-refresh {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.6);
+  color: #94a3b8;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.password-field .btn-refresh:hover {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.2);
+}
+.submit-area {
+  margin-top: 24px;
+}
+.submit-area .btn-primary {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+}
+.form-footer {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.75rem;
+  color: #475569;
+}
+.message-toast {
+  position: fixed;
+  bottom: 80px;
+  right: 50%;
+  transform: translateX(50%);
+  background: rgba(22, 30, 49, 0.97);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #e2e8f0;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+  z-index: 2000;
+  white-space: nowrap;
+  direction: rtl;
+}
+.message-toast.show {
+  opacity: 1;
+  visibility: visible;
+}
+.message-toast.error {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.loading-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #04060a;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@media (max-width: 480px) {
+  .register-card .card {
+    padding: 20px 16px;
+  }
+  .form-title h2 {
+    font-size: 1.2rem;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="scroll-buttons">
+  <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="scroll-btn" title="أعلى الصفحة">🔼</button>
+  <button onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})" class="scroll-btn" title="أسفل الصفحة">🔽</button>
+</div>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <div class="nav-logo">
+      <img src="img/logo.jpg" alt="شعار الأكاديمية" class="logo-img">
+      <span class="logo-text">أكاديمية العلوم الشرعية</span>
+    </div>
+     <button class="nav-toggle" onclick="toggleNav()"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+    <ul class="nav-links">
+      <li><a href="dashboard.html">الرئيسية</a></li>
+      <li><a href="register.html" style="color:#10b981;background:rgba(16,185,129,0.1)">تسجيل طلاب</a></li>
+      <li><a href="grades.html">رصد الدرجات</a></li>
+      <li><a href="attendance.html">الحضور</a></li>
+      <li><a href="students.html">الإدارة</a></li>
+      <li><a href="result.html">النتائج</a></li>
+      <li><a href="#" onclick="logout()" style="color:#ef4444">خروج</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="nav-overlay" onclick="toggleNav()"></div>
+
+<div class="register-page">
+  <div class="register-container">
+    <div class="register-card">
+      <div class="card">
+        <div class="form-title">
+          <h2>📝 تسجيل طالب جديد</h2>
+          <p>منظومة المُزْهِر في اللغة العربية 2026</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="courseSelect">نوع الدورة المقررة</label>
+          <select id="courseSelect" class="form-control" onchange="loadGroups()">
+            <option value="">-- اختر الدورة --</option>
+            <option value="prep">دورة الإعدادي</option>
+            <option value="adults">دورة الكبار</option>
+            <option value="kids">دورة الأطفال</option>
+            <option value="institute">معهد العلوم الشرعية</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="groupSelect">الفرقة / المجموعة الدراسية</label>
+          <select id="groupSelect" class="form-control">
+            <option value="">-- اختر الدورة أولاً --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="studentName">اسم الطالب رباعي (باللغة العربية)</label>
+          <input type="text" id="studentName" class="form-control" placeholder="أدخل اسم الطالب كاملاً">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="phone">رقم جوال ولي الأمر (واتساب)</label>
+          <input type="tel" id="phone" class="form-control" placeholder="مثال: 01012345678" dir="ltr" style="text-align:left">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="passwordDisplay">كود المتابعة السري</label>
+          <div class="password-field">
+            <input type="text" id="passwordDisplay" class="form-control" readonly>
+            <input type="hidden" id="password">
+            <button type="button" class="btn-refresh" onclick="generatePassword()" title="توليد كود جديد">🔄</button>
+          </div>
+        </div>
+
+        <div class="submit-area">
+          <button onclick="saveStudent()" class="btn btn-primary" id="submitBtn">
+            ✅ تأكيد التسجيل وإرسال كود المتابعة
+          </button>
+        </div>
+
+        <div class="form-footer">
+          جميع الحقوق محفوظة &copy; 2026
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="messageToast" class="message-toast"></div>
+
+<script>
+(function(){
+  const s = JSON.parse(localStorage.getItem('adminSession'));
+  if (!s || s.role !== 'admin' || (Date.now() - s.timestamp > 86400000)) {
+    localStorage.removeItem('adminSession');
+    window.location.href = 'login.html?mode=admin';
+  }
+})();
+function logout() { localStorage.removeItem('adminSession'); window.location.href = 'index.html'; }
+const firebaseConfig = {
+  apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+  authDomain: "adawra-63958.firebaseapp.com",
+  databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+  projectId: "adawra-63958"
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.database();
+
+
+function generatePassword() {
+  const pass = Math.floor(1000 + Math.random() * 9000).toString();
+  document.getElementById("password").value = pass;
+  document.getElementById("passwordDisplay").value = pass;
+}
+
+function showMessage(message, isError) {
+  const toast = document.getElementById("messageToast");
+  toast.textContent = message;
+  toast.className = "message-toast" + (isError ? " error" : "");
+  setTimeout(function() { toast.classList.add("show"); }, 10);
+  setTimeout(function() { toast.classList.remove("show"); }, 4000);
+}
+
+function loadGroups() {
+  const courseId = document.getElementById("courseSelect").value;
+  const select = document.getElementById("groupSelect");
+  if (!courseId) {
+    select.innerHTML = '<option value="">-- اختر الدورة أولاً --</option>';
+    return;
+  }
+  select.innerHTML = '<option value="">جاري التحميل...</option>';
+
+  db.ref("2026/settings/courses/" + courseId + "/locked").once("value").then(function(courseLockSnap) {
+    if (courseLockSnap.exists() && courseLockSnap.val() === true) {
+      select.innerHTML = '<option value="">❌ التسجيل مغلق في هذه الدورة</option>';
+      return;
+    }
+    db.ref("2026/groups/" + courseId).once("value").then(function(snapshot) {
+      select.innerHTML = '<option value="">-- اختر الفرقة --</option>';
+      if (!snapshot.exists()) {
+        select.innerHTML = '<option value="">⚠️ لا توجد فرق متاحة</option>';
+        return;
+      }
+      snapshot.forEach(function(child) {
+        var option = document.createElement("option");
+        option.value = child.key;
+        var data = child.val();
+        var isLocked = data && data.locked === true;
+        if (isLocked) {
+          option.textContent = "🚫 " + (data.name || child.key) + " (مغلق)";
+          option.disabled = true;
+        } else {
+          option.textContent = data.name || child.key;
+        }
+        select.appendChild(option);
+      });
+    });
+  });
+}
+
+function saveStudent() {
+  var courseId = document.getElementById("courseSelect").value;
+  var groupId = document.getElementById("groupSelect").value;
+  var name = document.getElementById("studentName").value.trim();
+  var phone = document.getElementById("phone").value.trim();
+  var passwordInput = document.getElementById("password").value;
+
+  if (!courseId || !groupId || !name || !phone) {
+    showMessage("يرجى ملء جميع الحقول المطلوبة", true);
+    return;
+  }
+  if (phone.length !== 11 || isNaN(phone)) {
+    showMessage("رقم الجوال يجب أن يكون 11 رقماً", true);
+    return;
+  }
+
+  var btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span> جاري التسجيل...';
+
+  db.ref("2026/settings/courses/" + courseId + "/locked").once("value").then(function(courseLockSnap) {
+    if (courseLockSnap.exists() && courseLockSnap.val() === true) {
+      showMessage("❌ تم إغلاق التسجيل في هذه الدورة", true);
+      resetBtn();
+      return;
+    }
+    return db.ref("2026/groups/" + courseId + "/" + groupId + "/locked").once("value");
+  }).then(function(groupLockSnap) {
+    if (groupLockSnap && groupLockSnap.exists() && groupLockSnap.val() === true) {
+      showMessage("❌ تم إغلاق التسجيل في هذه المجموعة", true);
+      resetBtn();
+      return;
+    }
+    return db.ref("2026/students/" + courseId + "/" + groupId).orderByChild("name").equalTo(name).once("value");
+  }).then(function(nameCheckSnap) {
+    if (nameCheckSnap && nameCheckSnap.exists()) {
+      showMessage("هذا الطالب مسجل بالفعل في هذه المجموعة", true);
+      resetBtn();
+      return;
+    }
+    return db.ref("2026/students/" + courseId + "/" + groupId).once("value");
+  }).then(function(studentsSnap) {
+    if (!studentsSnap) return;
+    var seq = studentsSnap.numChildren() + 1;
+    var courseSelect = document.getElementById("courseSelect");
+    var courseName = courseSelect.options[courseSelect.selectedIndex].text;
+    return db.ref("2026/groups/" + courseId + "/" + groupId + "/name").once("value").then(function(gSnap) {
+      var groupName = gSnap.val() || groupId;
+      return { seq: seq, courseName: courseName, groupName: groupName };
+    });
+  }).then(function(info) {
+    if (!info) return;
+    var studentsRef = db.ref("2026/students/" + courseId + "/" + groupId);
+    return studentsRef.push().set({
+      seq: info.seq,
+      name: name,
+      phone: phone,
+      password: passwordInput
+    }).then(function() {
+      return info;
+    });
+  }).then(function(info) {
+    if (!info) return;
+    showMessage("✅ تم التسجيل بنجاح! جاري فتح الواتساب...");
+    var cleanPhone = phone.replace(/[^0-9]/g, "");
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = "20" + cleanPhone.substring(1);
+    }
+    var text = "مرحبًا بك، تم تسجيل الطالب بنجاح في منظومة \"المُزْهِر في اللغة العربية\" لعام 2026:\n\n"
+      + "الدورة: " + info.courseName + "\n"
+      + "الفرقة: " + info.groupName + "\n"
+      + "الرقم المسلسل: " + info.seq + "\n"
+      + "اسم الطالب: " + name + "\n"
+      + "كود المتابعة: " + passwordInput;
+    window.open("https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(text), "_blank");
+    document.getElementById("studentName").value = "";
+    document.getElementById("phone").value = "";
+    generatePassword();
+    resetBtn();
+  }).catch(function(err) {
+    console.error(err);
+    showMessage("❌ فشل الاتصال بقاعدة البيانات، تحقق من الإنترنت", true);
+    resetBtn();
+  });
+}
+
+function resetBtn() {
+  var btn = document.getElementById("submitBtn");
+  btn.disabled = false;
+  btn.innerHTML = "✅ تأكيد التسجيل وإرسال كود المتابعة";
+}
+
+generatePassword();
+function toggleNav() {
+  var nl = document.querySelector('.nav-links');
+  var no = document.querySelector('.nav-overlay');
+  var nt = document.querySelector('.nav-toggle');
+  if (nl) nl.classList.toggle('open');
+  if (no) no.classList.toggle('show');
+  if (nt) nt.classList.toggle('open');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>البوابة الطلابية - أكاديمية العلوم الشرعية</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="main-style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+:root {
+  --accent-green: #10b981;
+  --accent-gold: #d97706;
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+  --accent-red: #ef4444;
+}
+.student-body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0b1120 0%, #0f1a2e 50%, #0b1120 100%);
+  position: relative;
+}
+.student-body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 50%, rgba(16,185,129,0.03) 0%, transparent 50%),
+              radial-gradient(circle at 70% 50%, rgba(217,119,6,0.02) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+.student-body > * { position: relative; z-index: 1; }
+.main-content { max-width: 1000px; margin: 0 auto; padding: 30px 20px 80px; }
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title i { color: #10b981; font-size: 1.1rem; }
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent);
+}
+.portal-section {
+  margin-bottom: 40px;
+  animation: fadeInUp 0.5s ease;
+}
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  background: rgba(15,23,42,0.5);
+  border-radius: 16px;
+  padding: 20px 24px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(16,185,129,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  color: #10b981;
+  flex-shrink: 0;
+}
+.profile-info h2 { font-size: 1.1rem; color: #ffffff; font-weight: 700; }
+.profile-info p { font-size: 0.82rem; color: #64748b; }
+.student-profile {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.student-profile .info-item {
+  background: rgba(15,23,42,0.5);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.student-profile .info-item .label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+.student-profile .info-item .value {
+  font-size: 1rem;
+  color: #e2e8f0;
+  font-weight: 700;
+}
+.student-profile .info-item .password-value {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 3px;
+  color: #f59e0b;
+}
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.content-card {
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+.content-card:hover { border-color: rgba(16,185,129,0.2); transform: translateY(-2px); }
+.content-card img, .content-card .card-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.content-card .video-wrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.content-card .video-wrapper iframe {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.content-card h4 { font-size: 0.9rem; color: #ffffff; margin-bottom: 4px; font-weight: 700; }
+.content-card p { font-size: 0.78rem; color: #64748b; line-height: 1.6; flex: 1; }
+.content-card .card-btn {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  background: rgba(16,185,129,0.15);
+  color: #10b981;
+  text-decoration: none;
+}
+.content-card .card-btn:hover { background: rgba(16,185,129,0.25); }
+.content-card .card-btn i { font-size: 0.75rem; }
+.no-data-msg {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 30px 20px;
+  color: #64748b;
+  font-size: 0.9rem;
+  background: rgba(15,23,42,0.3);
+  border-radius: 12px;
+  border: 1px dashed rgba(255,255,255,0.05);
+}
+.grades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.subject-card {
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 14px 12px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.subject-card:hover { transform: translateY(-2px); }
+.subject-card .subj-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.subject-card .subj-score {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+.subject-card .subj-status {
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+.subject-card .subj-status.pass { background: rgba(16,185,129,0.15); color: #10b981; }
+.subject-card .subj-status.fail { background: rgba(239,68,68,0.15); color: #f87171; }
+.result-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.summary-item {
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.summary-item .label { font-size: 0.82rem; font-weight: 600; color: #94a3b8; }
+.summary-item .value { font-size: 1.1rem; font-weight: 700; color: #e2e8f0; }
+.summary-item .value.gold { color: #d97706; }
+.summary-item .value.green { color: #10b981; }
+.summary-item .value.red { color: #f87171; }
+.summary-item .value.purple { color: #a78bfa; }
+.summary-item.full-width { grid-column: 1 / -1; }
+.final-grade-badge {
+  text-align: center;
+  padding: 14px;
+  border-radius: 14px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+.final-grade-badge.mumtaz {
+  background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+  border: 2px solid rgba(16,185,129,0.3);
+  color: #10b981;
+}
+.final-grade-badge.jayyid {
+  background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05));
+  border: 2px solid rgba(59,130,246,0.3);
+  color: #60a5fa;
+}
+.final-grade-badge.maqbul {
+  background: linear-gradient(135deg, rgba(217,119,6,0.15), rgba(217,119,6,0.05));
+  border: 2px solid rgba(217,119,6,0.3);
+  color: #d97706;
+}
+.final-grade-badge.second {
+  background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05));
+  border: 2px solid rgba(245,158,11,0.3);
+  color: #f59e0b;
+}
+.final-grade-badge.fail {
+  background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
+  border: 2px solid rgba(239,68,68,0.3);
+  color: #f87171;
+}
+.notes-card {
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.notes-card .notes-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.notes-card .notes-label i { margin-left: 4px; }
+.notes-card p { font-size: 0.9rem; color: #cbd5e1; line-height: 1.7; }
+.loading-wrap {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+}
+.loading-wrap i { font-size: 2rem; margin-bottom: 12px; display: block; color: #10b981; }
+.loading-wrap p { font-size: 0.9rem; }
+.gallery-img-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  height: 160px;
+}
+.gallery-img-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s;
+}
+.content-card:hover .gallery-img-container img { transform: scale(1.08); }
+.gallery-caption {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  margin-top: 4px;
+  font-weight: 600;
+}
+@media (max-width: 768px) {
+  .main-content { padding: 20px 12px 80px; }
+  .student-profile { grid-template-columns: 1fr; }
+  .profile-header { flex-direction: column; text-align: center; }
+  .result-summary { grid-template-columns: 1fr; }
+  .grades-grid { grid-template-columns: repeat(2, 1fr); }
+  .content-grid { grid-template-columns: 1fr; }
+  .section-title { font-size: 1.1rem; }
+}
+@media (max-width: 480px) {
+  .grades-grid { grid-template-columns: 1fr 1fr; }
+  .content-card { padding: 12px; }
+}
+#loadingScreen {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(11,17,32,0.92);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(8px);
+  transition: opacity 0.4s, visibility 0.4s;
+}
+#loadingScreen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+#loadingScreen .spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255,255,255,0.08);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-bottom: 16px;
+}
+#loadingScreen p { color: #94a3b8; font-size: 0.9rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.message-toast {
+  position: fixed;
+  bottom: 80px;
+  right: 50%;
+  transform: translateX(50%);
+  background: rgba(22,30,49,0.97);
+  border: 1px solid rgba(16,185,129,0.3);
+  color: #e2e8f0;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+  z-index: 2000;
+  white-space: nowrap;
+}
+.message-toast.show { opacity: 1; visibility: visible; }
+.message-toast.error { border-color: rgba(239,68,68,0.3); }
+:dir(rtl) .nav-links { gap: 4px; }
+</style>
+</head>
+<body>
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <p>جاري تحميل بيانات الطالب...</p>
+</div>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <div class="nav-logo">
+      <img src="img/logo.jpg" alt="شعار الأكاديمية" class="logo-img">
+      <span class="logo-text">أكاديمية العلوم الشرعية</span>
+    </div>
+     <button class="nav-toggle" onclick="toggleNav()"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+    <ul class="nav-links">
+      <li><a href="index.html"><i class="fas fa-home"></i> الصفحة الرئيسية</a></li>
+      <li><a href="#profile"><i class="fas fa-user"></i> الملف الشخصي</a></li>
+      <li><a href="#result"><i class="fas fa-award"></i> النتيجة</a></li>
+      <li><a href="#" onclick="logout()" class="logout-btn"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="nav-overlay" onclick="toggleNav()"></div>
+
+<div class="scroll-buttons">
+  <button class="scroll-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="أعلى الصفحة"><i class="fas fa-chevron-up"></i></button>
+  <button class="scroll-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="أسفل الصفحة"><i class="fas fa-chevron-down"></i></button>
+</div>
+
+<div class="student-body">
+  <div class="main-content">
+    <div id="profile" class="portal-section">
+      <div class="section-title"><i class="fas fa-user-circle"></i> الملف الشخصي</div>
+      <div class="profile-header" id="profileHeader">
+        <div class="profile-avatar"><i class="fas fa-user-graduate"></i></div>
+        <div class="profile-info">
+          <h2 id="studentNameDisplay">—</h2>
+          <p id="studentSubtitle">—</p>
+        </div>
+      </div>
+      <div class="student-profile" id="profileGrid">
+        <div class="info-item"><span class="label">اسم الطالب</span><span class="value" id="pName">—</span></div>
+        <div class="info-item"><span class="label">الفرقة الدراسية</span><span class="value" id="pGroup">—</span></div>
+        <div class="info-item"><span class="label">الدورة</span><span class="value" id="pCourse">—</span></div>
+        <div class="info-item"><span class="label">رقم الجوال</span><span class="value" id="pPhone" dir="ltr">—</span></div>
+        <div class="info-item"><span class="label">الرقم السري</span><span class="value password-value" id="pPassword">—</span></div>
+        <div class="info-item"><span class="label">الرقم المسلسل</span><span class="value" id="pSeq">—</span></div>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <div id="books" class="portal-section">
+      <div class="section-title"><i class="fas fa-book"></i> الكتب والمتون</div>
+      <div class="content-grid" id="booksGrid">
+        <div class="loading-wrap"><i class="fas fa-spinner fa-spin"></i><p>جاري تحميل الكتب...</p></div>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <div id="gallery" class="portal-section">
+      <div class="section-title"><i class="fas fa-images"></i> معرض الصور</div>
+      <div class="content-grid" id="galleryGrid">
+        <div class="loading-wrap"><i class="fas fa-spinner fa-spin"></i><p>جاري تحميل الصور...</p></div>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <div id="videos" class="portal-section">
+      <div class="section-title"><i class="fas fa-video"></i> المحاضرات المرئية</div>
+      <div class="content-grid" id="videosGrid">
+        <div class="loading-wrap"><i class="fas fa-spinner fa-spin"></i><p>جاري تحميل الفيديوهات...</p></div>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <div id="result" class="portal-section">
+      <div class="section-title"><i class="fas fa-award"></i> النتيجة النهائية</div>
+      <div id="resultContent">
+        <div class="loading-wrap"><i class="fas fa-spinner fa-spin"></i><p>جاري تحميل النتيجة...</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="messageToast" class="message-toast"></div>
+
+<script>
+(function() {
+  var firebaseConfig = {
+    apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+    authDomain: "adawra-63958.firebaseapp.com",
+    databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+    projectId: "adawra-63958"
+  };
+  if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+})();
+
+var db = firebase.database();
+var SESSION_KEY = 'studentSession';
+var SESSION_EXPIRY = 24 * 60 * 60 * 1000;
+
+var currentStudent = null;
+var currentCourseId = '';
+var currentGroupId = '';
+var currentStudentId = '';
+var courseName = '';
+var groupName = '';
+
+function showToast(msg, isError) {
+  var t = document.getElementById('messageToast');
+  t.textContent = msg;
+  t.className = 'message-toast' + (isError ? ' error' : '');
+  setTimeout(function() { t.classList.add('show'); }, 10);
+  setTimeout(function() { t.classList.remove('show'); }, 4000);
+}
+
+function showLoading() {
+  document.getElementById('loadingScreen').classList.remove('hidden');
+}
+function hideLoading() {
+  document.getElementById('loadingScreen').classList.add('hidden');
+}
+
+function logout() {
+  localStorage.removeItem(SESSION_KEY);
+  window.location.href = 'login.html';
+}
+
+function checkAuth() {
+  var raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) {
+    window.location.href = 'login.html';
+    return null;
+  }
+  try {
+    var session = JSON.parse(raw);
+    if (!session.studentId || !session.courseId || !session.groupId) {
+      localStorage.removeItem(SESSION_KEY);
+      window.location.href = 'login.html';
+      return null;
+    }
+    if (Date.now() - (session.timestamp || session.loginTime || 0) > SESSION_EXPIRY) {
+      localStorage.removeItem(SESSION_KEY);
+      window.location.href = 'login.html';
+      return null;
+    }
+    return session;
+  } catch(e) {
+    localStorage.removeItem(SESSION_KEY);
+    window.location.href = 'login.html';
+    return null;
+  }
+}
+
+function getGradeBadgeClass(gradeText) {
+  switch (gradeText) {
+    case '\u0645\u0645\u062A\u0627\u0632': return 'mumtaz';
+    case '\u062C\u064A\u062F \u062C\u062F\u0627\u064B':
+    case '\u062C\u064A\u062F': return 'jayyid';
+    case '\u0645\u0642\u0628\u0648\u0644': return 'maqbul';
+    case '\u062F\u0648\u0631 \u062B\u0627\u0646\u064A': return 'second';
+    case '\u0631\u0627\u0633\u0628': return 'fail';
+    default: return '';
+  }
+}
+
+function getCourseNameAr(courseId) {
+  var map = {
+    prep: '\u062F\u0648\u0631\u0629 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u064A',
+    adults: '\u062F\u0648\u0631\u0629 \u0627\u0644\u0643\u0628\u0627\u0631',
+    kids: '\u062F\u0648\u0631\u0629 \u0627\u0644\u0623\u0637\u0641\u0627\u0644',
+    institute: '\u0645\u0639\u0647\u062F \u0627\u0644\u0639\u0644\u0648\u0645 \u0627\u0644\u0634\u0631\u0639\u064A\u0629'
+  };
+  return map[courseId] || courseId;
+}
+
+function computeGrade(subjectScores, deduction) {
+  var totalRaw = 0, count = 0, failedCount = 0;
+  var subjects = [];
+  for (var sub in subjectScores) {
+    if (!subjectScores.hasOwnProperty(sub)) continue;
+    var score = parseFloat(subjectScores[sub]);
+    if (isNaN(score)) continue;
+    totalRaw += score;
+    count++;
+    var isFail = score < 50;
+    if (isFail) failedCount++;
+    subjects.push({ name: sub, score: score, isFail: isFail });
+  }
+  var totalAfter = Math.max(totalRaw - deduction, 0);
+  var avg = count > 0 ? (totalAfter / count) : 0;
+  var gradeText;
+  if (failedCount >= 3) {
+    gradeText = '\u0631\u0627\u0633\u0628';
+  } else if (failedCount > 0) {
+    gradeText = '\u062F\u0648\u0631 \u062B\u0627\u0646\u064A';
+  } else if (avg >= 90) {
+    gradeText = '\u0645\u0645\u062A\u0627\u0632';
+  } else if (avg >= 80) {
+    gradeText = '\u062C\u064A\u062F \u062C\u062F\u0627\u064B';
+  } else if (avg >= 70) {
+    gradeText = '\u062C\u064A\u062F';
+  } else {
+    gradeText = '\u0645\u0642\u0628\u0648\u0644';
+  }
+  return {
+    subjects: subjects,
+    totalRaw: totalRaw,
+    count: count,
+    failedCount: failedCount,
+    deduction: deduction,
+    totalAfter: totalAfter,
+    avg: avg,
+    gradeText: gradeText
+  };
+}
+
+function initApp() {
+  var session = checkAuth();
+  if (!session) return;
+  currentCourseId = session.courseId;
+  currentGroupId = session.groupId;
+  currentStudentId = session.studentId;
+  showLoading();
+  loadStudentData();
+  if (window.location.hash === '#result') {
+    setTimeout(function() {
+      var el = document.getElementById('result');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 600);
+  }
+}
+
+function loadStudentData() {
+  var studentRef = db.ref('2026/students/' + currentCourseId + '/' + currentGroupId + '/' + currentStudentId);
+  var courseRef = db.ref('2026/groups/' + currentCourseId);
+  studentRef.once('value').then(function(snap) {
+    if (!snap.exists()) {
+      showToast('\u062A\u0639\u0630\u0631 \u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0637\u0627\u0644\u0628', true);
+      hideLoading();
+      return;
+    }
+    currentStudent = snap.val();
+    currentStudent.id = snap.key;
+    return courseRef.once('value');
+  }).then(function(cSnap) {
+    if (!cSnap || !cSnap.exists()) return;
+    var courseData = cSnap.val() || {};
+    courseName = courseData.name || getCourseNameAr(currentCourseId);
+    var groupObj = courseData[currentGroupId] || {};
+    groupName = groupObj.name || currentGroupId;
+    renderProfile();
+    loadBooks();
+    loadGallery();
+    loadVideos();
+    loadResult();
+    hideLoading();
+  }).catch(function(err) {
+    console.error(err);
+    showToast('\u0641\u0634\u0644 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0637\u0627\u0644\u0628', true);
+    hideLoading();
+  });
+}
+
+function renderProfile() {
+  if (!currentStudent) return;
+  document.getElementById('studentNameDisplay').textContent = currentStudent.name || '\u2014';
+  document.getElementById('studentSubtitle').textContent = courseName + ' | ' + groupName;
+  document.getElementById('pName').textContent = currentStudent.name || '\u2014';
+  document.getElementById('pGroup').textContent = groupName || '\u2014';
+  document.getElementById('pCourse').textContent = courseName || '\u2014';
+  document.getElementById('pPhone').textContent = currentStudent.phone || '\u2014';
+  document.getElementById('pPassword').textContent = currentStudent.password || '\u2014';
+  var seq = currentStudent.seq || currentStudent.studentNumber || '\u2014';
+  document.getElementById('pSeq').textContent = seq;
+}
+
+function loadBooks() {
+  var grid = document.getElementById('booksGrid');
+  db.ref('2026/books/' + currentCourseId + '/' + currentGroupId).once('value').then(function(snap) {
+    var data = snap.val() || {};
+    var keys = Object.keys(data);
+    if (keys.length === 0) {
+      grid.innerHTML = '<div class="no-data-msg"><i class="fas fa-book-open" style="font-size:1.5rem;display:block;margin-bottom:8px;color:#64748b;"></i>\u0644\u0627 \u062A\u0648\u062C\u062F \u0643\u062A\u0628 \u0645\u0636\u0627\u0641\u0629</div>';
+      return;
+    }
+    var html = '';
+    keys.forEach(function(key) {
+      var item = data[key] || {};
+      var title = item.title || item.name || key;
+      var desc = item.description || '';
+      var fileUrl = item.fileUrl || item.url || '';
+      html += '<div class="content-card">';
+      html += '<h4>' + escapeHtml(title) + '</h4>';
+      if (desc) html += '<p>' + escapeHtml(desc) + '</p>';
+      if (fileUrl) {
+        html += '<a href="' + escapeHtml(fileUrl) + '" target="_blank" class="card-btn"><i class="fas fa-download"></i> \u062A\u062D\u0645\u064A\u0644</a>';
+      }
+      html += '</div>';
+    });
+    grid.innerHTML = html;
+  }).catch(function(err) {
+    console.error(err);
+    grid.innerHTML = '<div class="no-data-msg"><i class="fas fa-exclamation-triangle" style="font-size:1.2rem;display:block;margin-bottom:8px;color:#f87171;"></i>\u0641\u0634\u0644 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0643\u062A\u0628</div>';
+  });
+}
+
+function loadGallery() {
+  var grid = document.getElementById('galleryGrid');
+  db.ref('2026/gallery/' + currentCourseId + '/' + currentGroupId).once('value').then(function(snap) {
+    var data = snap.val() || {};
+    var keys = Object.keys(data);
+    if (keys.length === 0) {
+      grid.innerHTML = '<div class="no-data-msg"><i class="fas fa-image" style="font-size:1.5rem;display:block;margin-bottom:8px;color:#64748b;"></i>\u0644\u0627 \u062A\u0648\u062C\u062F \u0635\u0648\u0631 \u0645\u0636\u0627\u0641\u0629</div>';
+      return;
+    }
+    var html = '';
+    keys.forEach(function(key) {
+      var item = data[key] || {};
+      var imgUrl = item.imageUrl || item.url || '';
+      var caption = item.caption || '';
+      html += '<div class="content-card">';
+      if (imgUrl) {
+        html += '<div class="gallery-img-container"><img src="' + escapeHtml(imgUrl) + '" alt="' + escapeHtml(caption) + '" loading="lazy"></div>';
+      }
+      if (caption) html += '<div class="gallery-caption">' + escapeHtml(caption) + '</div>';
+      html += '</div>';
+    });
+    grid.innerHTML = html;
+  }).catch(function(err) {
+    console.error(err);
+    grid.innerHTML = '<div class="no-data-msg"><i class="fas fa-exclamation-triangle" style="font-size:1.2rem;display:block;margin-bottom:8px;color:#f87171;"></i>\u0641\u0634\u0644 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0635\u0648\u0631</div>';
+  });
+}
+
+function loadVideos() {
+  var grid = document.getElementById('videosGrid');
+  db.ref('2026/videos/' + currentCourseId + '/' + currentGroupId).once('value').then(function(snap) {
+    var data = snap.val() || {};
+    var keys = Object.keys(data);
+    if (keys.length === 0) {
+      grid.innerHTML = '<div class="no-data-msg"><i class="fas fa-video" style="font-size:1.5rem;display:block;margin-bottom:8px;color:#64748b;"></i>\u0644\u0627 \u062A\u0648\u062C\u062F \u0641\u064A\u062F\u064A\u0648\u0647\u0627\u062A \u0645\u0636\u0627\u0641\u0629</div>';
+      return;
+    }
+    var html = '';
+    keys.forEach(function(key) {
+      var item = data[key] || {};
+      var title = item.title || key;
+      var desc = item.description || '';
+      var videoUrl = item.url || item.videoUrl || '';
+      var embedId = '';
+      if (videoUrl) {
+        var match = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+        if (match) embedId = match[1];
+      }
+      html += '<div class="content-card">';
+      if (embedId) {
+        html += '<div class="video-wrapper"><iframe src="https://www.youtube.com/embed/' + embedId + '" allowfullscreen loading="lazy"></iframe></div>';
+      } else if (videoUrl) {
+        html += '<a href="' + escapeHtml(videoUrl) + '" target="_blank" class="card-btn"><i class="fas fa-play"></i> \u0645\u0634\u0627\u0647\u062F\u0629</a>';
+      }
+      html += '<h4>' + escapeHtml(title) + '</h4>';
+      if (desc) html += '<p>' + escapeHtml(desc) + '</p>';
+      html += '</div>';
+    });
+    grid.innerHTML = html;
+  }).catch(function(err) {
+    console.error(err);
+    grid.innerHTML = '<div class="no-data-msg"><i class="fas fa-exclamation-triangle" style="font-size:1.2rem;display:block;margin-bottom:8px;color:#f87171;"></i>\u0641\u0634\u0644 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648\u0647\u0627\u062A</div>';
+  });
+}
+
+function loadResult() {
+  var container = document.getElementById('resultContent');
+  var gradesRef = db.ref('2026/grades/' + currentCourseId + '/' + currentGroupId + '/' + currentStudentId);
+  var notesRef = db.ref('2026/notes/' + currentCourseId + '/' + currentGroupId + '/' + currentStudentId);
+  var absenceRef = db.ref('2026/absence/' + currentCourseId + '/' + currentGroupId + '/' + currentStudentId);
+  Promise.all([gradesRef.once('value'), notesRef.once('value'), absenceRef.once('value')]).then(function(results) {
+    var gradesSnap = results[0];
+    var notesSnap = results[1];
+    var absSnap = results[2];
+    var grades = gradesSnap.val() || {};
+    var note = notesSnap.val() || '';
+    var absence = parseInt(absSnap.val()) || 0;
+    var deduction = absence * 1;
+    var result = computeGrade(grades, deduction);
+    var html = '';
+    if (result.subjects.length === 0) {
+      html = '<div class="no-data-msg"><i class="fas fa-file-alt" style="font-size:1.5rem;display:block;margin-bottom:8px;color:#64748b;"></i>\u0644\u0645 \u062A\u0635\u062F\u0631 \u0627\u0644\u0646\u062A\u064A\u062C\u0629 \u0628\u0639\u062F</div>';
+      container.innerHTML = html;
+      return;
+    }
+    html += '<div class="final-grade-badge ' + getGradeBadgeClass(result.gradeText) + '">' + '\u0627\u0644\u062A\u0642\u062F\u064A\u0631: ' + result.gradeText + '</div>';
+    html += '<div class="grades-grid">';
+    result.subjects.forEach(function(sub) {
+      html += '<div class="subject-card">';
+      html += '<div class="subj-name">' + escapeHtml(sub.name) + '</div>';
+      html += '<div class="subj-score">' + sub.score.toFixed(1) + '</div>';
+      html += '<div class="subj-status ' + (sub.isFail ? 'fail' : 'pass') + '">' + (sub.isFail ? '\u062F\u0648\u0631 \u062B\u0627\u0646\u064A' : '\u0646\u0627\u062C\u062D') + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '<div class="result-summary">';
+    html += '<div class="summary-item"><span class="label">\u0627\u0644\u0645\u062C\u0645\u0648\u0639 \u0642\u0628\u0644 \u0627\u0644\u062E\u0635\u0645</span><span class="value">' + result.totalRaw.toFixed(1) + '</span></div>';
+    html += '<div class="summary-item"><span class="label">\u0623\u064A\u0627\u0645 \u0627\u0644\u063A\u064A\u0627\u0628</span><span class="value red">' + absence + ' \u064A\u0648\u0645</span></div>';
+    html += '<div class="summary-item"><span class="label">\u0627\u0644\u062E\u0635\u0645 (\u063A\u064A\u0627\u0628 \u00D7 1)</span><span class="value red">-' + result.deduction.toFixed(1) + '</span></div>';
+    html += '<div class="summary-item"><span class="label">\u0627\u0644\u0645\u062C\u0645\u0648\u0639 \u0628\u0639\u062F \u0627\u0644\u062E\u0635\u0645</span><span class="value gold">' + result.totalAfter.toFixed(1) + '</span></div>';
+    html += '<div class="summary-item"><span class="label">\u0627\u0644\u0646\u0633\u0628\u0629 \u0627\u0644\u0645\u0626\u0648\u064A\u0629</span><span class="value purple">' + result.avg.toFixed(1) + '%</span></div>';
+    html += '<div class="summary-item"><span class="label">\u0639\u062F\u062F \u0627\u0644\u0645\u0648\u0627\u062F \u0627\u0644\u0631\u0627\u0633\u0628\u0629</span><span class="value">' + result.failedCount + '</span></div>';
+    html += '</div>';
+    html += '<div class="notes-card">';
+    html += '<span class="notes-label"><i class="fas fa-sticky-note"></i> \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0625\u062F\u0627\u0631\u064A\u0629</span>';
+    html += '<p>' + (note || '\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0625\u0636\u0627\u0641\u064A\u0629.') + '</p>';
+    html += '</div>';
+    container.innerHTML = html;
+  }).catch(function(err) {
+    console.error(err);
+    container.innerHTML = '<div class="no-data-msg"><i class="fas fa-exclamation-triangle" style="font-size:1.2rem;display:block;margin-bottom:8px;color:#f87171;"></i>\u0641\u0634\u0644 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0646\u062A\u064A\u062C\u0629</div>';
+  });
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+document.addEventListener('DOMContentLoaded', initApp);
+function toggleNav() {
+  var nl = document.querySelector('.nav-links');
+  var no = document.querySelector('.nav-overlay');
+  var nt = document.querySelector('.nav-toggle');
+  if (nl) nl.classList.toggle('open');
+  if (no) no.classList.toggle('show');
+  if (nt) nt.classList.toggle('open');
+}
+</script>
+</body>
+</html>

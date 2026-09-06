@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم - أكاديمية العلوم الشرعية</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="main-style.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<style>
+:root {
+  --accent-green: #10b981;
+  --accent-purple: #8b5cf6;
+  --accent-gold: #d97706;
+  --accent-blue: #3b82f6;
+  --accent-pink: #ec4899;
+  --accent-cyan: #06b6d4;
+  --accent-orange: #f97316;
+  --accent-red: #ef4444;
+  --accent-teal: #14b8a6;
+}
+.dashboard-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0b1120 0%, #0f1a2e 50%, #0b1120 100%);
+  position: relative;
+}
+.dashboard-container::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 50%, rgba(16,185,129,0.03) 0%, transparent 50%),
+              radial-gradient(circle at 70% 50%, rgba(217,119,6,0.02) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+.dashboard-container > * { position: relative; z-index: 1; }
+.greeting-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.greeting-section h1 { font-size: 1.8rem; color: #ffffff; margin: 0; }
+.greeting-section .session-badge {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 32px;
+}
+.stat-item {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 14px;
+  padding: 16px 18px;
+  text-align: center;
+}
+.stat-item .stat-number { font-size: 1.6rem; font-weight: 800; color: #ffffff; }
+.stat-item .stat-label { font-size: 0.78rem; color: #64748b; margin-top: 2px; font-weight: 600; }
+.stat-item.green .stat-number { color: #10b981; }
+.stat-item.purple .stat-number { color: #8b5cf6; }
+.stat-item.gold .stat-number { color: #d97706; }
+.stat-item.blue .stat-number { color: #3b82f6; }
+.dashboard-card.accent-green { border-top: 3px solid #10b981; }
+.dashboard-card.accent-green:hover { box-shadow: 0 15px 35px rgba(16,185,129,0.15); }
+.dashboard-card.accent-purple { border-top: 3px solid #8b5cf6; }
+.dashboard-card.accent-purple:hover { box-shadow: 0 15px 35px rgba(139,92,246,0.15); }
+.dashboard-card.accent-gold { border-top: 3px solid #d97706; }
+.dashboard-card.accent-gold:hover { box-shadow: 0 15px 35px rgba(217,119,6,0.15); }
+.dashboard-card.accent-blue { border-top: 3px solid #3b82f6; }
+.dashboard-card.accent-blue:hover { box-shadow: 0 15px 35px rgba(59,130,246,0.15); }
+.dashboard-card.accent-pink { border-top: 3px solid #ec4899; }
+.dashboard-card.accent-pink:hover { box-shadow: 0 15px 35px rgba(236,72,153,0.15); }
+.dashboard-card.accent-cyan { border-top: 3px solid #06b6d4; }
+.dashboard-card.accent-cyan:hover { box-shadow: 0 15px 35px rgba(6,182,212,0.15); }
+.dashboard-card.accent-orange { border-top: 3px solid #f97316; }
+.dashboard-card.accent-orange:hover { box-shadow: 0 15px 35px rgba(249,115,22,0.15); }
+.dashboard-card.accent-red { border-top: 3px solid #ef4444; }
+.dashboard-card.accent-red:hover { box-shadow: 0 15px 35px rgba(239,68,68,0.15); }
+.dashboard-card.accent-teal { border-top: 3px solid #14b8a6; }
+.dashboard-card.accent-teal:hover { box-shadow: 0 15px 35px rgba(20,184,166,0.15); }
+@media (max-width: 768px) {
+  .greeting-section h1 { font-size: 1.3rem; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-item { padding: 12px 14px; }
+  .stat-item .stat-number { font-size: 1.2rem; }
+}
+@media (max-width: 480px) {
+  .greeting-section { flex-direction: column; align-items: flex-start; }
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
+</style>
+</head>
+<body>
+<div class="dashboard-container">
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">
+        <img src="img/logo.jpg" alt="شعار الأكاديمية" class="logo-img">
+        <span class="logo-text">أكاديمية العلوم الشرعية</span>
+      </div>
+       <button class="nav-toggle" onclick="toggleNav()"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+      <ul class="nav-links">
+        <li><a href="index.html">الرئيسية</a></li>
+        <li><a href="register.html">تسجيل طلاب</a></li>
+        <li><a href="grades.html">رصد الدرجات</a></li>
+        <li><a href="attendance.html">الحضور</a></li>
+        <li><a href="students.html">الإدارة</a></li>
+        <li><a href="result.html">النتائج</a></li>
+        <li><a href="admin-content.html" class="admin-btn">المحتوى</a></li>
+        <li><a href="javascript:void(0)" onclick="logout()" class="logout-btn">تسجيل الخروج</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="nav-overlay" onclick="toggleNav()"></div>
+
+  <div class="scroll-buttons">
+    <button class="scroll-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="أعلى الصفحة">⬆</button>
+    <button class="scroll-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="أسفل الصفحة">⬇</button>
+  </div>
+
+  <div class="main-content">
+    <div class="greeting-section">
+      <h1>لوحة التحكم</h1>
+      <span class="session-badge" id="sessionBadge">
+        <span>●</span>
+        <span id="sessionLabel">جاري التحميل...</span>
+      </span>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-item green">
+        <div class="stat-number" id="totalStudents">—</div>
+        <div class="stat-label">إجمالي الطلاب</div>
+      </div>
+      <div class="stat-item purple">
+        <div class="stat-number" id="totalGroups">—</div>
+        <div class="stat-label">الفرق الدراسية</div>
+      </div>
+      <div class="stat-item gold">
+        <div class="stat-number" id="totalActive">—</div>
+        <div class="stat-label">طلاب نشطون</div>
+      </div>
+      <div class="stat-item blue">
+        <div class="stat-number" id="sessionYear">—</div>
+        <div class="stat-label">العام الدراسي</div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="dashboard-card accent-green">
+        <div class="card-icon">🏠</div>
+        <h2>الرئيسية</h2>
+        <p>العودة إلى الصفحة الرئيسية للمنظومة واختيار الخدمات المتاحة.</p>
+        <a href="index.html" class="action-btn green">دخول</a>
+      </div>
+
+      <div class="dashboard-card accent-purple">
+        <div class="card-icon">📝</div>
+        <h2>تسجيل طلاب</h2>
+        <p>تسجيل طالب جديد في أحد الفرق المتاحة مع إدخال البيانات الشخصية.</p>
+        <a href="register.html" class="action-btn purple">تسجيل</a>
+      </div>
+
+      <div class="dashboard-card accent-gold">
+        <div class="card-icon">📊</div>
+        <h2>رصد الدرجات</h2>
+        <p>إدخال ورصد درجات الطلاب في المواد المختلفة لكل فرقة دراسية.</p>
+        <a href="grades.html" class="action-btn gold">رصد</a>
+      </div>
+
+      <div class="dashboard-card accent-blue">
+        <div class="card-icon">📋</div>
+        <h2>الحضور والغياب</h2>
+        <p>تسجيل حضور وغياب الطلاب وإحصائيات الغياب لكل فرقة.</p>
+        <a href="attendance.html" class="action-btn green">فتح</a>
+      </div>
+
+      <div class="dashboard-card accent-pink">
+        <div class="card-icon">👥</div>
+        <h2>إدارة الطلاب</h2>
+        <p>عرض وتعديل بيانات الطلاب وإدارة الملفات والسجلات الدراسية.</p>
+        <a href="students.html" class="action-btn purple">إدارة</a>
+      </div>
+
+      <div class="dashboard-card accent-cyan">
+        <div class="card-icon">💰</div>
+        <h2>الرسوم المالية</h2>
+        <p>إدارة المصروفات الدراسية وتسجيل المدفوعات والمتبقي من الرسوم.</p>
+        <a href="fees.html" class="action-btn gold">الرسوم</a>
+      </div>
+
+      <div class="dashboard-card accent-orange">
+        <div class="card-icon">📚</div>
+        <h2>إدارة الفرق</h2>
+        <p>إنشاء وتعديل الفرق الدراسية وتوزيع الطلاب على الفرق.</p>
+        <a href="groups.html" class="action-btn gold">الفرق</a>
+      </div>
+
+      <div class="dashboard-card accent-red">
+        <div class="card-icon">🎓</div>
+        <h2>عرض النتيجة</h2>
+        <p>عرض نتائج الطلاب وطباعة كشوف النتائج لكل فرقة دراسية.</p>
+        <a href="result.html" class="action-btn purple">النتائج</a>
+      </div>
+
+      <div class="dashboard-card" style="border-top: 3px solid #14b8a6;">
+        <div class="card-icon">📦</div>
+        <h2>إدارة المحتوى</h2>
+        <p>إضافة وإدارة الكتب، الفيديوهات، ومعرض الصور لكل دورة وفرقة.</p>
+        <a href="admin-content.html" class="action-btn purple">إدارة المحتوى</a>
+      </div>
+
+      <div class="dashboard-card" style="border-top: 3px solid #f97316;">
+        <div class="card-icon">🔄</div>
+        <h2>نظام الترحيل</h2>
+        <p>ترحيل الطلاب إلى العام الدراسي التالي آلياً مع الحفاظ على السجلات.</p>
+        <a href="migration.html" class="action-btn green">ترحيل</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const session = JSON.parse(localStorage.getItem('adminSession'));
+  if (!session || session.role !== 'admin' || (Date.now() - session.timestamp > 86400000)) {
+    localStorage.removeItem('adminSession');
+    window.location.href = 'login.html?mode=admin';
+  }
+})();
+
+function logout() {
+  localStorage.removeItem('adminSession');
+  window.location.href = 'index.html';
+}
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+  authDomain: "adawra-63958.firebaseapp.com",
+  databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+  projectId: "adawra-63958",
+  storageBucket: "adawra-63958.firebasestorage.app",
+  messagingSenderId: "814651258066",
+  appId: "1:814651258066:web:e0a5e2b9b47810c688690b"
+};
+
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.database();
+
+
+function updateStats(snap) {
+  const data = snap.val() || {};
+  const allStudents = data.students || {};
+  const groups = data.groups || {};
+  var totalStudents = 0;
+  var activeStudents = 0;
+  Object.keys(allStudents).forEach(function(course) {
+    var groupsInCourse = allStudents[course] || {};
+    Object.keys(groupsInCourse).forEach(function(group) {
+      var stus = groupsInCourse[group] || {};
+      var ids = Object.keys(stus);
+      totalStudents += ids.length;
+      activeStudents += ids.filter(function(k) { return stus[k].active !== false; }).length;
+    });
+  });
+  var totalGroups = 0;
+  Object.keys(groups).forEach(function(course) {
+    totalGroups += Object.keys(groups[course] || {}).length;
+  });
+  document.getElementById('totalStudents').textContent = totalStudents;
+  document.getElementById('totalGroups').textContent = totalGroups;
+  document.getElementById('totalActive').textContent = activeStudents;
+  document.getElementById('sessionYear').textContent = '2026';
+
+  const badge = document.getElementById('sessionLabel');
+  if (totalStudents > 0) {
+    badge.textContent = `العام الدراسي 2026  |  ${totalStudents} طالب`;
+  } else {
+    badge.textContent = `العام الدراسي 2026`;
+  }
+}
+
+Promise.all([
+  db.ref('2026/students').once('value'),
+  db.ref('2026/groups').once('value')
+]).then(function(results) {
+  updateStats({ val: function() { return { students: results[0].val(), groups: results[1].val() }; } });
+}).catch(function() {
+  document.getElementById('totalStudents').textContent = '0';
+  document.getElementById('totalGroups').textContent = '0';
+  document.getElementById('totalActive').textContent = '0';
+  document.getElementById('sessionYear').textContent = '2026';
+  document.getElementById('sessionLabel').textContent = 'العام الدراسي 2026';
+});
+function toggleNav() {
+  var nl = document.querySelector('.nav-links');
+  var no = document.querySelector('.nav-overlay');
+  var nt = document.querySelector('.nav-toggle');
+  if (nl) nl.classList.toggle('open');
+  if (no) no.classList.toggle('show');
+  if (nt) nt.classList.toggle('open');
+}
+</script>
+</body>
+</html>

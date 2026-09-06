@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة الطلاب | أكاديمية العلوم الشرعية</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="main-style.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<style>
+.page-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.main-content {
+  flex: 1;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.toolbar-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.table-wrapper {
+  max-height: 560px;
+  overflow-y: auto;
+}
+.table-wrapper table {
+  min-width: 600px;
+}
+.table-wrapper th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.action-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+.action-cell .btn-xs {
+  white-space: nowrap;
+}
+.edit-modal-content {
+  max-width: 500px;
+  text-align: right;
+}
+.edit-modal-content .form-group {
+  margin-bottom: 16px;
+}
+.edit-modal-content .form-group label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.edit-modal-content .modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+.whatsapp-btn-icon {
+  background: #25D366;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.whatsapp-btn-icon:hover { opacity: 0.85; }
+.no-data {
+  padding: 40px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+.loading-spinner {
+  text-align: center;
+  padding: 30px;
+  color: #64748b;
+}
+.search-wrap {
+  position: relative;
+  min-width: 220px;
+}
+.search-wrap .form-control {
+  padding-right: 36px;
+}
+.search-wrap .search-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+.delete-modal-text {
+  margin-bottom: 16px;
+  line-height: 1.7;
+}
+.delete-modal-text strong {
+  color: #f87171;
+}
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-left {
+    justify-content: center;
+  }
+  .search-wrap {
+    min-width: 100%;
+  }
+  .action-cell {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">
+        <img src="img/logo.jpg" alt="شعار الأكاديمية" class="logo-img">
+        <span class="logo-text">أكاديمية العلوم الشرعية</span>
+      </div>
+       <button class="nav-toggle" onclick="toggleNav()"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+      <ul class="nav-links">
+        <li><a href="dashboard.html">الرئيسية</a></li>
+        <li><a href="register.html">تسجيل طلاب</a></li>
+        <li><a href="grades.html">رصد الدرجات</a></li>
+        <li><a href="attendance.html">الحضور</a></li>
+        <li><a href="students.html">الإدارة</a></li>
+        <li><a href="result.html">النتائج</a></li>
+        <li><a href="#" onclick="logout()" style="color:#ef4444">خروج</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="nav-overlay" onclick="toggleNav()"></div>
+
+  <div class="scroll-buttons">
+    <button class="scroll-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="أعلى الصفحة">⬆</button>
+    <button class="scroll-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="أسفل الصفحة">⬇</button>
+  </div>
+
+  <div class="main-content">
+    <div class="main-content" style="padding: 30px 20px; max-width: 1200px; margin: 0 auto;">
+      <h1 class="page-title">إدارة الطلاب</h1>
+      <p class="page-subtitle">عرض وإدارة بيانات جميع الطلاب المسجلين</p>
+
+      <div class="filter-grid">
+        <div>
+          <label class="form-label">اختر الدورة</label>
+          <select class="form-control" id="courseSelect" onchange="onCourseChange()">
+            <option value="">-- اختر دورة --</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">اختر المجموعة</label>
+          <select class="form-control" id="groupSelect" onchange="onGroupChange()">
+            <option value="">-- اختر مجموعة --</option>
+          </select>
+        </div>
+        <div class="search-wrap">
+          <label class="form-label">بحث عن طالب</label>
+          <span class="search-icon">🔍</span>
+          <input class="form-control" type="text" id="searchInput" placeholder="اسم الطالب أو رقم الجوال..." oninput="onSearchInput()">
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div style="font-size:0.85rem;color:#94a3b8;" id="studentCount">عدد الطلاب: 0</div>
+        <div class="toolbar-left">
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV()">📥 تصدير CSV</button>
+          <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ طباعة</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px;">م</th>
+                <th>اسم الطالب رباعي</th>
+                <th>رقم الجوال</th>
+                <th>الرقم السري</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTableBody">
+              <tr><td colspan="5" class="loading-spinner">جاري تحميل البيانات...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-content edit-modal-content">
+    <h3 style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:18px;">تعديل بيانات الطالب</h3>
+    <div class="form-group">
+      <label>الاسم الرباعي</label>
+      <input class="form-control" type="text" id="editName" placeholder="الاسم الكامل">
+    </div>
+    <div class="form-group">
+      <label>رقم الجوال</label>
+      <input class="form-control" type="text" id="editPhone" placeholder="05xxxxxxxx" dir="ltr" style="text-align:left;">
+    </div>
+    <div class="form-group">
+      <label>الرقم السري</label>
+      <input class="form-control" type="text" id="editPassword" placeholder="الرقم السري" dir="ltr" style="text-align:center;font-family:'Courier New',monospace;letter-spacing:3px;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('editModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveEditStudent()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Move Modal -->
+<div class="modal-overlay" id="moveModal">
+  <div class="modal-content edit-modal-content">
+    <h3 style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:18px;">نقل الطالب إلى دورة / مجموعة أخرى</h3>
+    <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:16px;" id="moveStudentLabel">الطالب: —</p>
+    <div class="form-group">
+      <label>الدورة الجديدة</label>
+      <select class="form-control" id="moveCourseSelect" onchange="onMoveCourseChange()">
+        <option value="">-- اختر دورة --</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>المجموعة الجديدة</label>
+      <select class="form-control" id="moveGroupSelect">
+        <option value="">-- اختر مجموعة --</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('moveModal')">إلغاء</button>
+      <button class="btn btn-gold" onclick="saveMoveStudent()">🔄 نقل</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-content">
+    <h3 style="font-size:1.2rem;font-weight:700;color:#f87171;margin-bottom:10px;">تأكيد الحذف</h3>
+    <div class="delete-modal-text">
+      هل أنت متأكد من حذف الطالب<br>
+      <strong id="deleteStudentName">—</strong>؟
+    </div>
+    <p style="font-size:0.8rem;color:#64748b;margin-bottom:16px;">لا يمكن التراجع عن هذا الإجراء</p>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button class="btn btn-secondary" onclick="closeModal('deleteModal')">إلغاء</button>
+      <button class="btn btn-danger" onclick="confirmDeleteStudent()">🗑️ حذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="message-toast" id="messageToast"></div>
+
+<script>
+(function(){
+  const s = JSON.parse(localStorage.getItem('adminSession'));
+  if (!s || s.role !== 'admin' || (Date.now() - s.timestamp > 86400000)) {
+    localStorage.removeItem('adminSession');
+    window.location.href = 'login.html?mode=admin';
+  }
+})();
+function logout() { localStorage.removeItem('adminSession'); window.location.href = 'index.html'; }
+const firebaseConfig = {
+  apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+  authDomain: "adawra-63958.firebaseapp.com",
+  databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+  projectId: "adawra-63958",
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.database();
+
+
+/* ---------- state ---------- */
+let coursesMap = {};         // { courseId: courseName }
+let groupsMap = {};         // { groupId: groupName }
+let studentsArray = [];     // [{ id, name, phone, password, courseId, groupId }]
+let filteredStudents = [];
+let editingStudentId = null;
+let movingStudentId = null;
+let movingStudentCourseId = null;
+let movingStudentGroupId = null;
+let deletingStudentId = null;
+let selectedCourseId = '';
+let selectedGroupId = '';
+let searchQuery = '';
+
+/* ---------- toast ---------- */
+function showToast(msg, isError) {
+  const t = document.getElementById('messageToast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ---------- modal helpers ---------- */
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+/* ---------- load courses ---------- */
+function loadCourses() {
+  db.ref('2026/groups').once('value').then(snap => {
+    const data = snap.val() || {};
+    const sel = document.getElementById('courseSelect');
+    const moveSel = document.getElementById('moveCourseSelect');
+    const existingIds = new Set();
+    sel.innerHTML = '<option value="">-- اختر دورة --</option>';
+    moveSel.innerHTML = '<option value="">-- اختر دورة --</option>';
+    const keys = Object.keys(data).sort();
+    for (const courseId of keys) {
+      const courseName = data[courseId] && data[courseId].name ? data[courseId].name : courseId;
+      coursesMap[courseId] = courseName;
+      existingIds.add(courseId);
+      const opt1 = document.createElement('option');
+      opt1.value = courseId; opt1.textContent = courseName;
+      sel.appendChild(opt1);
+      const opt2 = document.createElement('option');
+      opt2.value = courseId; opt2.textContent = courseName;
+      moveSel.appendChild(opt2);
+    }
+    if (selectedCourseId && existingIds.has(selectedCourseId)) {
+      sel.value = selectedCourseId;
+    }
+    loadGroups(selectedCourseId);
+  }).catch(e => {
+    console.error('loadCourses', e);
+    showToast('فشل تحميل الدورات', true);
+  });
+}
+
+/* ---------- load groups ---------- */
+function loadGroups(courseId) {
+  const sel = document.getElementById('groupSelect');
+  const moveSel = document.getElementById('moveGroupSelect');
+  sel.innerHTML = '<option value="">-- اختر مجموعة --</option>';
+  moveSel.innerHTML = '<option value="">-- اختر مجموعة --</option>';
+  groupsMap = {};
+  if (!courseId) {
+    loadStudents();
+    return;
+  }
+  db.ref('2026/groups/' + courseId).once('value').then(snap => {
+    const data = snap.val() || {};
+    const keys = Object.keys(data).sort();
+    for (const gId of keys) {
+      const gName = data[gId] && data[gId].name ? data[gId].name : gId;
+      groupsMap[gId] = gName;
+      const opt1 = document.createElement('option');
+      opt1.value = gId; opt1.textContent = gName;
+      sel.appendChild(opt1);
+      const opt2 = document.createElement('option');
+      opt2.value = gId; opt2.textContent = gName;
+      moveSel.appendChild(opt2);
+    }
+    if (selectedGroupId && keys.indexOf(selectedGroupId) !== -1) {
+      sel.value = selectedGroupId;
+    }
+    loadStudents();
+  }).catch(e => {
+    console.error('loadGroups', e);
+    showToast('فشل تحميل المجموعات', true);
+    loadStudents();
+  });
+}
+
+/* ---------- load students ---------- */
+function loadStudents() {
+  document.getElementById('studentsTableBody').innerHTML =
+    '<tr><td colspan="5" class="loading-spinner">جاري تحميل البيانات...</td></tr>';
+  studentsArray = [];
+  filteredStudents = [];
+  if (!selectedCourseId) {
+    // load all students across all courses
+    db.ref('2026/students').once('value').then(snap => {
+      const data = snap.val() || {};
+      for (const courseId of Object.keys(data)) {
+        const courseData = data[courseId] || {};
+        for (const groupId of Object.keys(courseData)) {
+          const groupData = courseData[groupId] || {};
+          for (const studentId of Object.keys(groupData)) {
+            const s = groupData[studentId] || {};
+            studentsArray.push({
+              id: studentId,
+              name: s.name || '',
+              phone: s.phone || '',
+              password: s.password || '',
+              courseId: courseId,
+              groupId: groupId
+            });
+          }
+        }
+      }
+      applyFilters();
+    }).catch(e => {
+      console.error('loadStudents all', e);
+      showToast('فشل تحميل الطلاب', true);
+      renderTable();
+    });
+  } else if (!selectedGroupId) {
+    // load all groups for this course
+    db.ref('2026/students/' + selectedCourseId).once('value').then(snap => {
+      const data = snap.val() || {};
+      for (const groupId of Object.keys(data)) {
+        const groupData = data[groupId] || {};
+        for (const studentId of Object.keys(groupData)) {
+          const s = groupData[studentId] || {};
+          studentsArray.push({
+            id: studentId,
+            name: s.name || '',
+            phone: s.phone || '',
+            password: s.password || '',
+            courseId: selectedCourseId,
+            groupId: groupId
+          });
+        }
+      }
+      applyFilters();
+    }).catch(e => {
+      console.error('loadStudents course', e);
+      showToast('فشل تحميل الطلاب', true);
+      renderTable();
+    });
+  } else {
+    // load specific group
+    db.ref('2026/students/' + selectedCourseId + '/' + selectedGroupId).once('value').then(snap => {
+      const data = snap.val() || {};
+      for (const studentId of Object.keys(data)) {
+        const s = data[studentId] || {};
+        studentsArray.push({
+          id: studentId,
+          name: s.name || '',
+          phone: s.phone || '',
+          password: s.password || '',
+          courseId: selectedCourseId,
+          groupId: selectedGroupId
+        });
+      }
+      applyFilters();
+    }).catch(e => {
+      console.error('loadStudents group', e);
+      showToast('فشل تحميل الطلاب', true);
+      renderTable();
+    });
+  }
+}
+
+/* ---------- filter ---------- */
+function applyFilters() {
+  const q = searchQuery.trim().toLowerCase();
+  filteredStudents = studentsArray.filter(s => {
+    if (!q) return true;
+    return (s.name && s.name.toLowerCase().includes(q)) ||
+           (s.phone && s.phone.includes(q));
+  });
+  renderTable();
+}
+
+function onCourseChange() {
+  selectedCourseId = document.getElementById('courseSelect').value;
+  selectedGroupId = '';
+  document.getElementById('groupSelect').value = '';
+  loadGroups(selectedCourseId);
+}
+
+function onGroupChange() {
+  selectedGroupId = document.getElementById('groupSelect').value;
+  loadStudents();
+}
+
+function onSearchInput() {
+  searchQuery = document.getElementById('searchInput').value;
+  applyFilters();
+}
+
+/* ---------- render table ---------- */
+function renderTable() {
+  const tbody = document.getElementById('studentsTableBody');
+  const countEl = document.getElementById('studentCount');
+  if (filteredStudents.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="no-data">لا يوجد طلاب لعرضهم</td></tr>';
+    countEl.textContent = 'عدد الطلاب: 0';
+    return;
+  }
+  countEl.textContent = 'عدد الطلاب: ' + filteredStudents.length;
+  let html = '';
+  filteredStudents.forEach((s, i) => {
+    const courseName = coursesMap[s.courseId] || s.courseId;
+    const groupName = groupsMap[s.groupId] || s.groupId;
+    html += '<tr>';
+    html += '<td>' + (i + 1) + '</td>';
+    html += '<td style="font-weight:600;">' + escapeHtml(s.name) + '</td>';
+    html += '<td dir="ltr">' + escapeHtml(s.phone) + '</td>';
+    html += '<td style="font-family:\'Courier New\',monospace;letter-spacing:2px;color:#f59e0b;">' + escapeHtml(s.password) + '</td>';
+    html += '<td><div class="action-cell">';
+    html += '<button class="btn btn-primary btn-xs" onclick="openEditModal(\'' + s.id + '\')">✏️ تعديل</button>';
+    html += '<button class="btn btn-gold btn-xs" onclick="openMoveModal(\'' + s.id + '\')">🔄 نقل</button>';
+    html += '<button class="whatsapp-btn-icon" onclick="sendWhatsApp(\'' + s.id + '\')">📱 واتس</button>';
+    html += '<button class="btn btn-danger btn-xs" onclick="openDeleteModal(\'' + s.id + '\')">🗑️ حذف</button>';
+    html += '</div></td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ---------- get student by id ---------- */
+function findStudentById(id) {
+  return studentsArray.find(s => s.id === id);
+}
+
+/* ---------- EDIT ---------- */
+function openEditModal(studentId) {
+  editingStudentId = studentId;
+  const s = findStudentById(studentId);
+  if (!s) { showToast('الطالب غير موجود', true); return; }
+  document.getElementById('editName').value = s.name || '';
+  document.getElementById('editPhone').value = s.phone || '';
+  document.getElementById('editPassword').value = s.password || '';
+  openModal('editModal');
+}
+
+function saveEditStudent() {
+  const name = document.getElementById('editName').value.trim();
+  const phone = document.getElementById('editPhone').value.trim();
+  const password = document.getElementById('editPassword').value.trim();
+  if (!name) { showToast('الرجاء إدخال الاسم', true); return; }
+  if (!phone) { showToast('الرجاء إدخال رقم الجوال', true); return; }
+  if (!password) { showToast('الرجاء إدخال الرقم السري', true); return; }
+  const s = findStudentById(editingStudentId);
+  if (!s) { showToast('الطالب غير موجود', true); return; }
+  const ref = db.ref('2026/students/' + s.courseId + '/' + s.groupId + '/' + editingStudentId);
+  ref.update({ name: name, phone: phone, password: password }).then(() => {
+    closeModal('editModal');
+    showToast('تم تعديل بيانات الطالب بنجاح');
+    // update local state
+    s.name = name;
+    s.phone = phone;
+    s.password = password;
+    applyFilters();
+  }).catch(e => {
+    console.error('saveEditStudent', e);
+    showToast('فشل تعديل البيانات', true);
+  });
+}
+
+/* ---------- MOVE ---------- */
+function openMoveModal(studentId) {
+  movingStudentId = studentId;
+  const s = findStudentById(studentId);
+  if (!s) { showToast('الطالب غير موجود', true); return; }
+  movingStudentCourseId = s.courseId;
+  movingStudentGroupId = s.groupId;
+  const courseName = coursesMap[s.courseId] || s.courseId;
+  const groupName = groupsMap[s.groupId] || s.groupId;
+  document.getElementById('moveStudentLabel').textContent = 'الطالب: ' + s.name + ' | ' + courseName + ' - ' + groupName;
+  // set move selects to current values
+  document.getElementById('moveCourseSelect').value = s.courseId;
+  // load groups for the current course into moveGroupSelect
+  const moveGroupSel = document.getElementById('moveGroupSelect');
+  moveGroupSel.innerHTML = '<option value="">-- اختر مجموعة --</option>';
+  db.ref('2026/groups/' + s.courseId).once('value').then(snap => {
+    const data = snap.val() || {};
+    const keys = Object.keys(data).sort();
+    for (const gId of keys) {
+      const gName = data[gId] && data[gId].name ? data[gId].name : gId;
+      const opt = document.createElement('option');
+      opt.value = gId; opt.textContent = gName;
+      moveGroupSel.appendChild(opt);
+    }
+    moveGroupSel.value = s.groupId;
+    openModal('moveModal');
+  }).catch(e => {
+    console.error('openMoveModal groups', e);
+    showToast('فشل تحميل المجموعات', true);
+    openModal('moveModal');
+  });
+}
+
+function onMoveCourseChange() {
+  const courseId = document.getElementById('moveCourseSelect').value;
+  const moveGroupSel = document.getElementById('moveGroupSelect');
+  moveGroupSel.innerHTML = '<option value="">-- اختر مجموعة --</option>';
+  if (!courseId) return;
+  db.ref('2026/groups/' + courseId).once('value').then(snap => {
+    const data = snap.val() || {};
+    const keys = Object.keys(data).sort();
+    for (const gId of keys) {
+      const gName = data[gId] && data[gId].name ? data[gId].name : gId;
+      const opt = document.createElement('option');
+      opt.value = gId; opt.textContent = gName;
+      moveGroupSel.appendChild(opt);
+    }
+  }).catch(e => {
+    console.error('onMoveCourseChange', e);
+  });
+}
+
+function saveMoveStudent() {
+  const newCourseId = document.getElementById('moveCourseSelect').value;
+  const newGroupId = document.getElementById('moveGroupSelect').value;
+  if (!newCourseId || !newGroupId) {
+    showToast('الرجاء اختيار الدورة والمجموعة', true);
+    return;
+  }
+  const s = findStudentById(movingStudentId);
+  if (!s) { showToast('الطالب غير موجود', true); return; }
+  const oldCourseId = s.courseId;
+  const oldGroupId = s.groupId;
+  if (oldCourseId === newCourseId && oldGroupId === newGroupId) {
+    showToast('الطالب موجود بالفعل في هذه المجموعة', true);
+    return;
+  }
+  const studentData = { name: s.name, phone: s.phone, password: s.password };
+  const oldRef = db.ref('2026/students/' + oldCourseId + '/' + oldGroupId + '/' + movingStudentId);
+  const newRef = db.ref('2026/students/' + newCourseId + '/' + newGroupId + '/' + movingStudentId);
+  // write to new location, then remove old
+  newRef.set(studentData).then(() => {
+    return oldRef.remove();
+  }).then(() => {
+    closeModal('moveModal');
+    showToast('تم نقل الطالب بنجاح');
+    // update local state
+    s.courseId = newCourseId;
+    s.groupId = newGroupId;
+    // if filter is specific, student might disappear, so reload
+    if (selectedCourseId || selectedGroupId) {
+      loadStudents();
+    } else {
+      applyFilters();
+    }
+  }).catch(e => {
+    console.error('saveMoveStudent', e);
+    showToast('فشل نقل الطالب', true);
+  });
+}
+
+/* ---------- WHATSAPP ---------- */
+function sendWhatsApp(studentId) {
+  const s = findStudentById(studentId);
+  if (!s) { showToast('الطالب غير موجود', true); return; }
+  const courseName = coursesMap[s.courseId] || s.courseId;
+  const groupName = groupsMap[s.groupId] || s.groupId;
+  const msg = 'السلام عليكم ورحمة الله وبركاته\n\n' +
+    'بيانات الطالب في أكاديمية العلوم الشرعية:\n' +
+    'الاسم: ' + (s.name || '—') + '\n' +
+    'رقم الجوال: ' + (s.phone || '—') + '\n' +
+    'الرقم السري: ' + (s.password || '—') + '\n' +
+    'الدورة: ' + courseName + '\n' +
+    'المجموعة: ' + groupName + '\n\n' +
+    'نسأل الله التوفيق للجميع 🤲';
+  const url = 'https://wa.me/' + s.phone.replace(/^0/, '20') + '?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
+
+/* ---------- DELETE ---------- */
+function openDeleteModal(studentId) {
+  deletingStudentId = studentId;
+  const s = findStudentById(studentId);
+  if (!s) { showToast('الطالب غير موجود', true); return; }
+  document.getElementById('deleteStudentName').textContent = s.name || '—';
+  openModal('deleteModal');
+}
+
+function confirmDeleteStudent() {
+  if (!deletingStudentId) return;
+  const s = findStudentById(deletingStudentId);
+  if (!s) { showToast('الطالب غير موجود', true); return; }
+  db.ref('2026/students/' + s.courseId + '/' + s.groupId + '/' + deletingStudentId).remove().then(() => {
+    closeModal('deleteModal');
+    showToast('تم حذف الطالب بنجاح');
+    // remove from local
+    const idx = studentsArray.indexOf(s);
+    if (idx !== -1) studentsArray.splice(idx, 1);
+    deletingStudentId = null;
+    applyFilters();
+  }).catch(e => {
+    console.error('confirmDeleteStudent', e);
+    showToast('فشل حذف الطالب', true);
+  });
+}
+
+/* ---------- EXPORT CSV ---------- */
+function exportCSV() {
+  if (filteredStudents.length === 0) {
+    showToast('لا يوجد طلاب للتصدير', true);
+    return;
+  }
+  let csv = '\uFEFF'; // BOM for Arabic
+  csv += 'م,الاسم الرباعي,رقم الجوال,الرقم السري,الدورة,المجموعة\n';
+  filteredStudents.forEach((s, i) => {
+    const courseName = coursesMap[s.courseId] || s.courseId;
+    const groupName = groupsMap[s.groupId] || s.groupId;
+    csv += (i + 1) + ',' +
+      '"' + (s.name || '') + '",' +
+      '"' + (s.phone || '') + '",' +
+      '"' + (s.password || '') + '",' +
+      '"' + courseName + '",' +
+      '"' + groupName + '"\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'الطلاب_' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+}
+
+/* ---------- init ---------- */
+loadCourses();
+function toggleNav() {
+  var nl = document.querySelector('.nav-links');
+  var no = document.querySelector('.nav-overlay');
+  var nt = document.querySelector('.nav-toggle');
+  if (nl) nl.classList.toggle('open');
+  if (no) no.classList.toggle('show');
+  if (nt) nt.classList.toggle('open');
+}
+</script>
+</body>
+</html>

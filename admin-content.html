@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة المحتوى - أكاديمية العلوم الشرعية</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="main-style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<style>
+.tab-switcher {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: rgba(15,23,42,0.5);
+  border-radius: 12px;
+  padding: 4px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+  color: #64748b;
+}
+.tab-btn.active {
+  background: rgba(16,185,129,0.15);
+  color: #10b981;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.content-list { margin-top: 20px; }
+.content-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+.content-item .info { flex: 1; }
+.content-item .info h4 { font-size: 0.9rem; color: #e2e8f0; margin-bottom: 2px; }
+.content-item .info p { font-size: 0.78rem; color: #64748b; }
+.content-item .actions { display: flex; gap: 8px; }
+.empty-msg { text-align: center; padding: 30px; color: #64748b; font-size: 0.9rem; }
+.input-group { margin-bottom: 12px; }
+.input-group .form-label { font-size: 0.82rem; font-weight: 600; color: #94a3b8; margin-bottom: 4px; display: block; }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <div class="nav-logo">
+      <img src="img/logo.jpg" alt="شعار الأكاديمية" class="logo-img">
+      <span class="logo-text">أكاديمية العلوم الشرعية</span>
+    </div>
+     <button class="nav-toggle" onclick="toggleNav()"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+    <ul class="nav-links">
+      <li><a href="index.html">الرئيسية</a></li>
+      <li><a href="dashboard.html">لوحة التحكم</a></li>
+      <li><a href="admin-content.html" class="admin-btn">إدارة المحتوى</a></li>
+      <li><a href="register.html">تسجيل طلاب</a></li>
+      <li><a href="students.html">الإدارة</a></li>
+      <li><a href="javascript:void(0)" onclick="logout()" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="nav-overlay" onclick="toggleNav()"></div>
+
+<div class="scroll-buttons">
+  <button class="scroll-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fas fa-chevron-up"></i></button>
+  <button class="scroll-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})"><i class="fas fa-chevron-down"></i></button>
+</div>
+
+<main class="main-content">
+  <h1 class="page-title">إدارة المحتوى التعليمي</h1>
+  <p class="page-subtitle">إضافة وإدارة الكتب، الفيديوهات، ومعرض الصور لكل دورة وفرقة</p>
+
+  <div class="filter-grid">
+    <div>
+      <label class="form-label">الدورة:</label>
+      <select id="courseSelect" onchange="loadGroups()" class="form-control">
+        <option value="">-- اختر الدورة --</option>
+        <option value="prep">دورة الإعدادي</option>
+        <option value="adults">دورة الكبار</option>
+        <option value="kids">دورة الأطفال</option>
+        <option value="institute">معهد العلوم الشرعية</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">الفرقة / المجموعة:</label>
+      <select id="groupSelect" onchange="loadAllContent()" class="form-control">
+        <option value="">-- اختر الفرقة أولاً --</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="tab-switcher">
+    <button class="tab-btn active" onclick="switchTab('books', this)"><i class="fas fa-book"></i> الكتب</button>
+    <button class="tab-btn" onclick="switchTab('videos', this)"><i class="fas fa-video"></i> الفيديوهات</button>
+    <button class="tab-btn" onclick="switchTab('gallery', this)"><i class="fas fa-images"></i> معرض الصور</button>
+  </div>
+
+  <div id="tab-books" class="tab-panel active">
+    <div class="card">
+      <h3 style="color:#10b981;margin-bottom:16px;font-size:1.1rem;"><i class="fas fa-plus-circle"></i> إضافة كتاب جديد</h3>
+      <div class="input-group"><label class="form-label">عنوان الكتاب:</label><input type="text" id="bookTitle" class="form-control" placeholder="مثال: كتاب التوحيد"></div>
+      <div class="input-group"><label class="form-label">رابط التحميل (PDF):</label><input type="url" id="bookFile" class="form-control" placeholder="https://example.com/book.pdf"></div>
+      <div class="input-group"><label class="form-label">وصف مختصر:</label><input type="text" id="bookDesc" class="form-control" placeholder="وصف مختصر للكتاب"></div>
+      <button onclick="addBook()" class="btn btn-primary"><i class="fas fa-save"></i> إضافة كتاب</button>
+    </div>
+    <div class="content-list" id="booksList"><p class="empty-msg">اختر الدورة والفرقة لعرض الكتب</p></div>
+  </div>
+
+  <div id="tab-videos" class="tab-panel">
+    <div class="card">
+      <h3 style="color:#f59e0b;margin-bottom:16px;font-size:1.1rem;"><i class="fas fa-plus-circle"></i> إضافة فيديو جديد</h3>
+      <div class="input-group"><label class="form-label">عنوان الفيديو:</label><input type="text" id="videoTitle" class="form-control" placeholder="مثال: شرح باب التوحيد"></div>
+      <div class="input-group"><label class="form-label">رابط الفيديو (YouTube):</label><input type="url" id="videoUrl" class="form-control" placeholder="https://youtube.com/watch?v=..."></div>
+      <div class="input-group"><label class="form-label">وصف مختصر:</label><input type="text" id="videoDesc" class="form-control" placeholder="وصف مختصر للفيديو"></div>
+      <button onclick="addVideo()" class="btn btn-gold"><i class="fas fa-save"></i> إضافة فيديو</button>
+    </div>
+    <div class="content-list" id="videosList"><p class="empty-msg">اختر الدورة والفرقة لعرض الفيديوهات</p></div>
+  </div>
+
+  <div id="tab-gallery" class="tab-panel">
+    <div class="card">
+      <h3 style="color:#8b5cf6;margin-bottom:16px;font-size:1.1rem;"><i class="fas fa-plus-circle"></i> إضافة صورة جديدة</h3>
+      <div class="input-group"><label class="form-label">رابط الصورة:</label><input type="url" id="galleryUrl" class="form-control" placeholder="https://example.com/image.jpg"></div>
+      <div class="input-group"><label class="form-label">تعليق:</label><input type="text" id="galleryCaption" class="form-control" placeholder="وصف الصورة"></div>
+      <button onclick="addGalleryImage()" class="btn btn-primary" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;"><i class="fas fa-save"></i> إضافة صورة</button>
+    </div>
+    <div class="content-list" id="galleryList"><p class="empty-msg">اختر الدورة والفرقة لعرض الصور</p></div>
+  </div>
+</main>
+
+<div id="messageToast" class="message-toast"></div>
+
+<script>
+(function(){
+  const s = JSON.parse(localStorage.getItem('adminSession'));
+  if (!s || s.role !== 'admin' || (Date.now() - s.timestamp > 86400000)) {
+    localStorage.removeItem('adminSession');
+    window.location.href = 'login.html?mode=admin';
+  }
+})();
+function logout() { localStorage.removeItem('adminSession'); window.location.href = 'index.html'; }
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+  authDomain: "adawra-63958.firebaseapp.com",
+  databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+  projectId: "adawra-63958"
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.database();
+
+
+let currentCourse = '', currentGroup = '';
+
+function showMsg(m) {
+  const t = document.getElementById('messageToast');
+  t.textContent = m; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function loadGroups() {
+  currentCourse = document.getElementById('courseSelect').value;
+  const sel = document.getElementById('groupSelect');
+  sel.innerHTML = '<option value="">⏳ جاري التحميل...</option>';
+  if (!currentCourse) { sel.innerHTML = '<option value="">-- اختر الدورة أولاً --</option>'; return; }
+  db.ref(`2026/groups/${currentCourse}`).once('value', snap => {
+    sel.innerHTML = '<option value="">-- اختر الفرقة --</option>';
+    if (!snap.exists()) { sel.innerHTML = '<option value="">⚠️ لا توجد فرق</option>'; return; }
+    snap.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.key; o.textContent = c.val().name;
+      sel.appendChild(o);
+    });
+  });
+}
+
+document.getElementById('groupSelect').addEventListener('change', function() {
+  currentGroup = this.value;
+  if (currentCourse && currentGroup) loadAllContent();
+});
+
+function loadAllContent() {
+  loadBooks(); loadVideos(); loadGallery();
+}
+
+function getBasePath() { return `2026`; }
+function refPath(type) { return `${getBasePath()}/${type}/${currentCourse}/${currentGroup}`; }
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// --- BOOKS ---
+function addBook() {
+  const title = document.getElementById('bookTitle').value.trim();
+  const fileUrl = document.getElementById('bookFile').value.trim();
+  const desc = document.getElementById('bookDesc').value.trim();
+  if (!currentCourse || !currentGroup) { showMsg('❌ اختر الدورة والفرقة أولاً'); return; }
+  if (!title || !fileUrl) { showMsg('❌ العنوان ورابط التحميل مطلوبان'); return; }
+  db.ref(refPath('books')).push({ title, fileUrl, desc, createdAt: Date.now() }).then(() => {
+    showMsg('✅ تم إضافة الكتاب بنجاح');
+    document.getElementById('bookTitle').value = '';
+    document.getElementById('bookFile').value = '';
+    document.getElementById('bookDesc').value = '';
+    loadBooks();
+  }).catch(() => showMsg('❌ فشل الإضافة'));
+}
+
+function loadBooks() {
+  const container = document.getElementById('booksList');
+  if (!currentCourse || !currentGroup) { container.innerHTML = '<p class="empty-msg">اختر الدورة والفرقة</p>'; return; }
+  container.innerHTML = '<p class="empty-msg"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</p>';
+  db.ref(refPath('books')).once('value', snap => {
+    if (!snap.exists()) { container.innerHTML = '<p class="empty-msg">📚 لا توجد كتب مضافة بعد</p>'; return; }
+    container.innerHTML = '';
+    snap.forEach(child => {
+      const d = child.val();
+      container.innerHTML += `
+        <div class="content-item">
+          <div class="info">
+            <h4><i class="fas fa-book" style="color:#10b981;margin-left:6px;"></i>${escapeHtml(d.title)}</h4>
+            <p>${escapeHtml(d.desc || '')}</p>
+          </div>
+          <div class="actions">
+            <a href="${escapeUrl(d.fileUrl)}" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-download"></i> تحميل</a>
+            <button onclick="deleteItem('books','${child.key}')" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>`;
+    });
+  }, function() { container.innerHTML = '<p class="empty-msg">❌ فشل تحميل الكتب</p>'; });
+}
+
+// --- VIDEOS ---
+function addVideo() {
+  const title = document.getElementById('videoTitle').value.trim();
+  const url = document.getElementById('videoUrl').value.trim();
+  const desc = document.getElementById('videoDesc').value.trim();
+  if (!currentCourse || !currentGroup) { showMsg('❌ اختر الدورة والفرقة أولاً'); return; }
+  if (!title || !url) { showMsg('❌ العنوان والرابط مطلوبان'); return; }
+  db.ref(refPath('videos')).push({ title, url, desc, createdAt: Date.now() }).then(() => {
+    showMsg('✅ تم إضافة الفيديو بنجاح');
+    document.getElementById('videoTitle').value = '';
+    document.getElementById('videoUrl').value = '';
+    document.getElementById('videoDesc').value = '';
+    loadVideos();
+  }).catch(() => showMsg('❌ فشل الإضافة'));
+}
+
+function loadVideos() {
+  const container = document.getElementById('videosList');
+  if (!currentCourse || !currentGroup) { container.innerHTML = '<p class="empty-msg">اختر الدورة والفرقة</p>'; return; }
+  container.innerHTML = '<p class="empty-msg"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</p>';
+  db.ref(refPath('videos')).once('value', snap => {
+    if (!snap.exists()) { container.innerHTML = '<p class="empty-msg">🎥 لا توجد فيديوهات مضافة بعد</p>'; return; }
+    container.innerHTML = '';
+    snap.forEach(child => {
+      const d = child.val();
+      container.innerHTML += `
+        <div class="content-item">
+          <div class="info">
+            <h4><i class="fas fa-video" style="color:#f59e0b;margin-left:6px;"></i>${escapeHtml(d.title)}</h4>
+            <p>${escapeHtml(d.desc || '')}</p>
+          </div>
+          <div class="actions">
+            <a href="${escapeUrl(d.url)}" target="_blank" class="btn btn-sm btn-gold"><i class="fas fa-play"></i> مشاهدة</a>
+            <button onclick="deleteItem('videos','${child.key}')" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>`;
+    });
+  }, function() { container.innerHTML = '<p class="empty-msg">❌ فشل تحميل الفيديوهات</p>'; });
+}
+
+// --- GALLERY ---
+function addGalleryImage() {
+  const imageUrl = document.getElementById('galleryUrl').value.trim();
+  const caption = document.getElementById('galleryCaption').value.trim();
+  if (!currentCourse || !currentGroup) { showMsg('❌ اختر الدورة والفرقة أولاً'); return; }
+  if (!imageUrl) { showMsg('❌ رابط الصورة مطلوب'); return; }
+  db.ref(refPath('gallery')).push({ imageUrl, caption, createdAt: Date.now() }).then(() => {
+    showMsg('✅ تم إضافة الصورة بنجاح');
+    document.getElementById('galleryUrl').value = '';
+    document.getElementById('galleryCaption').value = '';
+    loadGallery();
+  }).catch(() => showMsg('❌ فشل الإضافة'));
+}
+
+function loadGallery() {
+  const container = document.getElementById('galleryList');
+  if (!currentCourse || !currentGroup) { container.innerHTML = '<p class="empty-msg">اختر الدورة والفرقة</p>'; return; }
+  container.innerHTML = '<p class="empty-msg"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</p>';
+  db.ref(refPath('gallery')).once('value', snap => {
+    if (!snap.exists()) { container.innerHTML = '<p class="empty-msg">🖼️ لا توجد صور مضافة بعد</p>'; return; }
+    container.innerHTML = '';
+    snap.forEach(child => {
+      const d = child.val();
+      container.innerHTML += `
+        <div class="content-item">
+          <div class="info" style="display:flex;align-items:center;gap:10px;">
+            <img src="${escapeUrl(d.imageUrl)}" style="width:50px;height:50px;border-radius:8px;object-fit:cover;" onerror="this.style.display='none'">
+            <div>
+              <h4>${escapeHtml(d.caption || 'بدون عنوان')}</h4>
+            </div>
+          </div>
+          <div class="actions">
+            <button onclick="deleteItem('gallery','${child.key}')" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>`;
+    });
+  }, function() { container.innerHTML = '<p class="empty-msg">❌ فشل تحميل الصور</p>'; });
+}
+
+function deleteItem(type, key) {
+  if (!confirm('هل أنت متأكد من الحذف؟')) return;
+  db.ref(refPath(type) + '/' + key).remove().then(() => {
+    showMsg('✅ تم الحذف بنجاح');
+    if (type === 'books') loadBooks();
+    else if (type === 'videos') loadVideos();
+    else if (type === 'gallery') loadGallery();
+  }).catch(() => showMsg('❌ فشل الحذف'));
+}
+
+function escapeHtml(t) {
+  if (!t) return '';
+  const d = document.createElement('div');
+  d.textContent = t;
+  return d.innerHTML;
+}
+function escapeUrl(u) {
+  if (!u) return '';
+  return u.replace(/"/g, '%22').replace(/'/g, '%27');
+}
+function toggleNav() {
+  var nl = document.querySelector('.nav-links');
+  var no = document.querySelector('.nav-overlay');
+  var nt = document.querySelector('.nav-toggle');
+  if (nl) nl.classList.toggle('open');
+  if (no) no.classList.toggle('show');
+  if (nt) nt.classList.toggle('open');
+}
+</script>
+</body>
+</html>

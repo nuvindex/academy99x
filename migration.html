@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام الترحيل الشامل | أكاديمية العلوم الشرعية</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="main-style.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<style>
+.migration-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0b1120 0%, #0f1a2e 50%, #0b1120 100%);
+}
+.migration-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.migration-grid .card h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(16, 185, 129, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.migration-grid .card .form-group {
+  margin-bottom: 14px;
+}
+.preview-section {
+  margin-top: 24px;
+}
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.preview-header h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.preview-actions {
+  display: flex;
+  gap: 8px;
+}
+.preview-count {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-right: 8px;
+}
+.table-wrap {
+  max-height: 420px;
+  overflow-y: auto;
+}
+.table-wrap th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.stu-check {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #10b981;
+}
+.badge-pass {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+.badge-fail {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+.migration-btn-wrap {
+  margin-top: 16px;
+}
+.migration-btn-wrap .btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+}
+.hidden {
+  display: none !important;
+}
+.loading-cell {
+  padding: 30px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+.empty-cell {
+  padding: 30px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+.empty-cell .icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+@media (max-width: 768px) {
+  .migration-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .preview-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .preview-actions {
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+<div class="migration-page">
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">
+        <img src="img/logo.jpg" alt="شعار الأكاديمية" class="logo-img">
+        <span class="logo-text">أكاديمية العلوم الشرعية</span>
+      </div>
+       <button class="nav-toggle" onclick="toggleNav()"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+      <ul class="nav-links">
+        <li><a href="dashboard.html">الرئيسية</a></li>
+        <li><a href="register.html">تسجيل طلاب</a></li>
+        <li><a href="grades.html">رصد الدرجات</a></li>
+        <li><a href="attendance.html">الحضور</a></li>
+        <li><a href="students.html">الإدارة</a></li>
+        <li><a href="result.html">النتائج</a></li>
+        <li><a href="#" onclick="logout()" style="color:#ef4444">خروج</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="nav-overlay" onclick="toggleNav()"></div>
+
+  <div class="scroll-buttons">
+    <button class="scroll-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="أعلى الصفحة">⬆</button>
+    <button class="scroll-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="أسفل الصفحة">⬇</button>
+  </div>
+
+  <div class="main-content">
+    <h1 class="page-title">نظام الترحيل الشامل</h1>
+    <p class="page-subtitle">ترحيل الطلاب بين الدورات الدراسية مع الاحتفاظ بالسجلات والرسوم</p>
+
+    <div class="migration-grid">
+      <div class="card">
+        <h3>📤 المصدر (من أين؟)</h3>
+        <div class="form-group">
+          <label class="form-label">اختر الدورة المصدر</label>
+          <select class="form-control" id="srcCourse" onchange="onSrcCourseChange()">
+            <option value="">-- اختر دورة المصدر --</option>
+            <option value="old">العام الماضي</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">اختر الفرقة</label>
+          <select class="form-control" id="srcGroup" onchange="previewStudents()">
+            <option value="">-- اختر الدورة أولاً --</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📥 الهدف (إلى أين؟)</h3>
+        <div class="form-group">
+          <label class="form-label">اختر الدورة الهدف</label>
+          <select class="form-control" id="targetCourse" onchange="onTargetCourseChange()">
+            <option value="">-- اختر دورة الهدف --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">اختر الفرقة</label>
+          <select class="form-control" id="targetGroup">
+            <option value="">-- اختر الدورة أولاً --</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div id="previewSection" class="preview-section hidden">
+      <div class="card">
+        <div class="preview-header">
+          <h3>👥 معاينة الطلاب <span class="preview-count" id="studentCount"></span></h3>
+          <div class="preview-actions">
+            <button class="btn btn-secondary btn-sm" onclick="toggleAll(true)">✔️ تحديد الكل</button>
+            <button class="btn btn-secondary btn-sm" onclick="toggleAll(false)">✖️ إلغاء الكل</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:50px;">اختيار</th>
+                  <th>الاسم</th>
+                  <th>الحالة</th>
+                </tr>
+              </thead>
+              <tbody id="previewBody">
+                <tr><td colspan="3" class="empty-cell">اختر الدورة والفرقة المصدر لمعاينة الطلاب</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="migration-btn-wrap">
+          <button class="btn btn-primary" id="migrateBtn" onclick="performMigration()">
+            🚀 بدء الترحيل
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="message-toast" id="messageToast"></div>
+
+<div class="modal-overlay" id="progressOverlay">
+  <div class="modal-content">
+    <p id="progressText" style="font-weight:700;color:#e2e8f0;">جاري الترحيل...</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const s = JSON.parse(localStorage.getItem('adminSession'));
+  if (!s || s.role !== 'admin' || (Date.now() - s.timestamp > 86400000)) {
+    localStorage.removeItem('adminSession');
+    window.location.href = 'login.html?mode=admin';
+  }
+})();
+function logout() { localStorage.removeItem('adminSession'); window.location.href = 'index.html'; }
+var firebaseConfig = {
+  apiKey: "AIzaSyBfJgQDKE0IBWnP6De30-9MwYc0mty7Obs",
+  authDomain: "adawra-63958.firebaseapp.com",
+  databaseURL: "https://adawra-63958-default-rtdb.firebaseio.com",
+  projectId: "adawra-63958"
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+var db = firebase.database();
+
+
+var previewStudentList = [];
+
+function showToast(msg, isError) {
+  var t = document.getElementById('messageToast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)';
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+function showProgress(msg) {
+  document.getElementById('progressText').textContent = msg || 'جاري الترحيل...';
+  document.getElementById('progressOverlay').classList.add('show');
+}
+
+function hideProgress() {
+  document.getElementById('progressOverlay').classList.remove('show');
+}
+
+function getGroupsFromSnapshot(snap) {
+  var groups = {};
+  if (!snap.exists()) return groups;
+  var data = snap.val();
+  if (data.groups && typeof data.groups === 'object' && !Array.isArray(data.groups)) {
+    return data.groups;
+  }
+  snap.forEach(function(child) {
+    if (child.key === 'name' || child.key === 'groups') return;
+    groups[child.key] = child.val() || {};
+  });
+  return groups;
+}
+
+function loadCurrentCourses(selectId, includeOld) {
+  var sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">-- اختر الدورة --</option>';
+  if (includeOld) {
+    sel.innerHTML += '<option value="old">العام الماضي</option>';
+  }
+  db.ref('2026/groups').once('value').then(function(snap) {
+    if (snap.exists()) {
+      snap.forEach(function(courseSnap) {
+        var courseData = courseSnap.val() || {};
+        var courseName = courseData.name || courseSnap.key;
+        var opt = document.createElement('option');
+        opt.value = courseSnap.key;
+        opt.textContent = courseName;
+        sel.appendChild(opt);
+      });
+    }
+  }).catch(function(e) {
+    console.error('loadCurrentCourses', e);
+  });
+}
+
+function onSrcCourseChange() {
+  var course = document.getElementById('srcCourse').value;
+  var sel = document.getElementById('srcGroup');
+  sel.innerHTML = '<option value="">-- اختر الفرقة --</option>';
+  document.getElementById('previewSection').classList.add('hidden');
+  if (!course) return;
+
+  if (course === 'old') {
+    db.ref('groups').once('value').then(function(snap) {
+      if (snap.exists()) {
+        snap.forEach(function(child) {
+          var data = child.val() || {};
+          var name = data.name || child.key;
+          sel.innerHTML += '<option value="' + child.key + '">' + name + '</option>';
+        });
+      }
+    }).catch(function(e) {
+      console.error('loadOldGroups', e);
+    });
+  } else {
+    db.ref('2026/groups/' + course).once('value').then(function(snap) {
+      var groups = getGroupsFromSnapshot(snap);
+      var keys = Object.keys(groups).sort();
+      for (var i = 0; i < keys.length; i++) {
+        var gId = keys[i];
+        var gData = groups[gId] || {};
+        var gName = gData.name || gId;
+        sel.innerHTML += '<option value="' + gId + '">' + gName + '</option>';
+      }
+    }).catch(function(e) {
+      console.error('loadCurrentGroups', e);
+    });
+  }
+}
+
+function onTargetCourseChange() {
+  var course = document.getElementById('targetCourse').value;
+  var sel = document.getElementById('targetGroup');
+  sel.innerHTML = '<option value="">-- اختر الفرقة --</option>';
+  if (!course) return;
+
+  db.ref('2026/groups/' + course).once('value').then(function(snap) {
+    var groups = getGroupsFromSnapshot(snap);
+    if (Object.keys(groups).length === 0) {
+      sel.innerHTML = '<option value="">لا توجد فرق في هذه الدورة</option>';
+      return;
+    }
+    var keys = Object.keys(groups).sort();
+    for (var i = 0; i < keys.length; i++) {
+      var gId = keys[i];
+      var gData = groups[gId] || {};
+      var gName = gData.name || gId;
+      sel.innerHTML += '<option value="' + gId + '">' + gName + '</option>';
+    }
+  }).catch(function(e) {
+    console.error('loadTargetGroups', e);
+  });
+}
+
+async function previewStudents() {
+  var srcCourse = document.getElementById('srcCourse').value;
+  var srcGroup = document.getElementById('srcGroup').value;
+  var previewSection = document.getElementById('previewSection');
+  var tbody = document.getElementById('previewBody');
+  var countEl = document.getElementById('studentCount');
+
+  if (!srcGroup) {
+    previewSection.classList.add('hidden');
+    return;
+  }
+
+  previewSection.classList.remove('hidden');
+  tbody.innerHTML = '<tr><td colspan="3" class="loading-cell">🔄 جاري تحميل بيانات الطلاب والدرجات...</td></tr>';
+
+  var studentsPath, gradesPath;
+  if (srcCourse === 'old') {
+    studentsPath = 'students/' + srcGroup;
+    gradesPath = 'grades/' + srcGroup;
+  } else {
+    studentsPath = '2026/students/' + srcCourse + '/' + srcGroup;
+    gradesPath = '2026/grades/' + srcCourse + '/' + srcGroup;
+  }
+
+  try {
+    var sSnap = await db.ref(studentsPath).once('value');
+    var gSnap = await db.ref(gradesPath).once('value');
+
+    var studentsData = sSnap.val() || {};
+    var gradesData = gSnap.val() || {};
+    var studentIds = Object.keys(studentsData);
+
+    if (studentIds.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" class="empty-cell"><div class="icon">📭</div>لا يوجد طلاب في هذه الفرقة</td></tr>';
+      countEl.textContent = '';
+      previewStudentList = [];
+      return;
+    }
+
+    previewStudentList = [];
+    var html = '';
+    for (var i = 0; i < studentIds.length; i++) {
+      var sid = studentIds[i];
+      var stu = studentsData[sid] || {};
+      var stuGrades = gradesData[sid] || {};
+
+      var hasFail = false;
+      var gradeKeys = Object.keys(stuGrades);
+      for (var j = 0; j < gradeKeys.length; j++) {
+        var gradeVal = parseFloat(stuGrades[gradeKeys[j]]);
+        if (!isNaN(gradeVal) && gradeVal < 50) {
+          hasFail = true;
+          break;
+        }
+      }
+
+      previewStudentList.push({
+        id: sid,
+        name: stu.name || 'بدون اسم',
+        status: hasFail ? 'fail' : 'pass'
+      });
+
+      var badgeClass = hasFail ? 'badge-fail' : 'badge-pass';
+      var badgeText = hasFail ? '❌ راسب' : '✅ ناجح';
+
+      html += '<tr>';
+      html += '<td><input type="checkbox" class="stu-check" data-id="' + sid + '" checked></td>';
+      html += '<td style="font-weight:600;text-align:right;">' + escapeHtml(stu.name || 'بدون اسم') + '</td>';
+      html += '<td><span class="' + badgeClass + '">' + badgeText + '</span></td>';
+      html += '</tr>';
+    }
+
+    tbody.innerHTML = html;
+    countEl.textContent = '(' + studentIds.length + ' طالب)';
+
+  } catch (e) {
+    console.error('previewStudents error', e);
+    tbody.innerHTML = '<tr><td colspan="3" class="empty-cell" style="color:#f87171;">⚠️ فشل تحميل البيانات. تحقق من اتصال Firebase.</td></tr>';
+    countEl.textContent = '';
+    previewStudentList = [];
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleAll(checked) {
+  var checks = document.querySelectorAll('.stu-check');
+  for (var i = 0; i < checks.length; i++) {
+    checks[i].checked = checked;
+  }
+}
+
+async function performMigration() {
+  var targetCourse = document.getElementById('targetCourse').value;
+  var targetGroup = document.getElementById('targetGroup').value;
+
+  if (!targetCourse || !targetGroup) {
+    showToast('❌ يرجى اختيار الدورة والفرقة الهدف', true);
+    return;
+  }
+
+  var checks = document.querySelectorAll('.stu-check:checked');
+  if (checks.length === 0) {
+    showToast('❌ لم تختر أي طالب للترحيل', true);
+    return;
+  }
+
+  showProgress('جاري ترحيل ' + checks.length + ' طالب...');
+
+  var btn = document.getElementById('migrateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ جاري الترحيل...';
+
+  var migrated = 0;
+  var errors = 0;
+
+  for (var i = 0; i < checks.length; i++) {
+    var sid = checks[i].getAttribute('data-id');
+
+    var studentData = null;
+    for (var k = 0; k < previewStudentList.length; k++) {
+      if (previewStudentList[k].id === sid) {
+        studentData = previewStudentList[k];
+        break;
+      }
+    }
+    if (!studentData) continue;
+
+    var srcCourse = document.getElementById('srcCourse').value;
+    var srcGroup = document.getElementById('srcGroup').value;
+    var srcStudentsPath, srcGradesPath;
+
+    if (srcCourse === 'old') {
+      srcStudentsPath = 'students/' + srcGroup + '/' + sid;
+      srcGradesPath = 'grades/' + srcGroup + '/' + sid;
+    } else {
+      srcStudentsPath = '2026/students/' + srcCourse + '/' + srcGroup + '/' + sid;
+      srcGradesPath = '2026/grades/' + srcCourse + '/' + srcGroup + '/' + sid;
+    }
+
+    try {
+      var fullStudentSnap = await db.ref(srcStudentsPath).once('value');
+      var fullStudent = fullStudentSnap.val() || {};
+
+      var targetStudentPath = '2026/students/' + targetCourse + '/' + targetGroup + '/' + sid;
+      var targetFeesPath = '2026/fees/' + targetCourse + '/' + targetGroup + '/' + sid;
+
+      await db.ref(targetStudentPath).set(fullStudent);
+      await db.ref(targetFeesPath).set({ paid: 0, received: false });
+
+      var gradeSnap = await db.ref(srcGradesPath).once('value');
+      if (gradeSnap.exists()) {
+        var targetGradesPath = '2026/grades/' + targetCourse + '/' + targetGroup + '/' + sid;
+        await db.ref(targetGradesPath).set(gradeSnap.val());
+      }
+
+      migrated++;
+    } catch (e) {
+      console.error('Migration error for', sid, e);
+      errors++;
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🚀 بدء الترحيل';
+  hideProgress();
+
+  if (errors === 0) {
+    showToast('✅ تم ترحيل ' + migrated + ' طالب بنجاح');
+  } else {
+    showToast('⚠️ تم ترحيل ' + migrated + ' طالب، فشل ترحيل ' + errors + ' طالب', true);
+  }
+}
+
+loadCurrentCourses('srcCourse', true);
+loadCurrentCourses('targetCourse', false);
+function toggleNav() {
+  var nl = document.querySelector('.nav-links');
+  var no = document.querySelector('.nav-overlay');
+  var nt = document.querySelector('.nav-toggle');
+  if (nl) nl.classList.toggle('open');
+  if (no) no.classList.toggle('show');
+  if (nt) nt.classList.toggle('open');
+}
+</script>
+</body>
+</html>
